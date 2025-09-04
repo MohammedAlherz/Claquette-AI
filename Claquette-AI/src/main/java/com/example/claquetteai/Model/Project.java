@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import org.hibernate.annotations.Check;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
@@ -16,6 +17,10 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@Check(name = "budget_positive", constraints = "budget > 0")
+@Check(name = "valid_date_range", constraints = "start_project_date < end_project_date")
+@Check(name = "valid_project_type", constraints = "project_type IN ('FILM', 'SERIES')")
+@Check(name = "valid_status", constraints = "status IN ('IN_DEVELOPMENT', 'IN_PRODUCTION', 'PRE_PRODUCTION', 'COMPLETED', 'DELETED')")
 public class Project {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,14 +51,13 @@ public class Project {
 
     @Size(max = 200, message = "Location should not exceed 200 characters")
     @Column(columnDefinition = "varchar(200)")
-    private List<String> location;
+    private String location;
 
     @Size(max = 100, message = "Target audience should not exceed 100 characters")
     @Column(columnDefinition = "varchar(100)")
     private String targetAudience;
 
-    @NotEmpty(message = "Status cannot be null")
-    @Pattern(regexp = "IN_DEVELOPMENT|IN_PRODUCTION|PRE_PRODUCTION|COMPLETED|DELETED",
+    @Pattern(regexp = "^$|IN_DEVELOPMENT|IN_PRODUCTION|PRE_PRODUCTION|COMPLETED|DELETED",
             message = "Status must be: IN_DEVELOPMENT, IN_PRODUCTION, PRE_PRODUCTION, COMPLETED, or DELETED")
     @Column(columnDefinition = "varchar(20) not null")
     private String status;

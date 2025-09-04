@@ -1,7 +1,7 @@
 package com.example.claquetteai.Controller;
 
 import com.example.claquetteai.Api.ApiResponse;
-import com.example.claquetteai.DTO.CompanyDTO;
+import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.Service.CompanyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,27 +15,27 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
-    @GetMapping("/get")
+    @GetMapping("/companies")
     public ResponseEntity<?> getAllCompanies() {
         return ResponseEntity.ok().body(companyService.getAllCompanies());
     }
 
-    @PostMapping("/add")
-    public ResponseEntity<?> addCompany(@RequestBody @Valid CompanyDTO dto) {
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody @Valid CompanyDTOIN dto) {
         companyService.addCompany(dto);
-        return ResponseEntity.ok().body(new ApiResponse("Company has been added successfully"));
+        return ResponseEntity.ok().body(new ApiResponse("Company registered successfully"));
     }
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateCompany(@PathVariable Integer id,
-                                                     @RequestBody @Valid CompanyDTO dto) {
+                                           @RequestBody @Valid CompanyDTOIN dto) {
         companyService.updateCompany(id, dto);
-        return ResponseEntity.ok().body(new ApiResponse("Company has been updated successfully"));
+        return ResponseEntity.ok().body(new ApiResponse("Company updated successfully"));
     }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteCompany(@PathVariable Integer id) {
         companyService.deleteCompany(id);
-        return ResponseEntity.ok().body(new ApiResponse("Company has been deleted successfully"));
+        return ResponseEntity.ok().body(new ApiResponse("Company deleted successfully"));
     }
-
 }
