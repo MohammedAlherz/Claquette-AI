@@ -1,5 +1,6 @@
 package com.example.claquetteai.Model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
@@ -64,10 +65,12 @@ public class Project {
 
 
     @NotNull(message = "Start project date cannot be null")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(columnDefinition = "datetime not null")
     private LocalDateTime startProjectDate;
 
     @NotNull(message = "End project date cannot be null")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(columnDefinition = "datetime not null")
     private LocalDateTime endProjectDate;
 

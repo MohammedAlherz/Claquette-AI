@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -50,4 +51,8 @@ public class Episode {
     @ManyToOne
     @JsonIgnore
     private Project project;
+
+    // 🟢 Add OneToMany link with Scene
+    @OneToMany(mappedBy = "episode", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Scene> scenes;
 }
