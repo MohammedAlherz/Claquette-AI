@@ -44,4 +44,7 @@ public class Scene {
     @ManyToMany
     @JsonIgnore
     private Set<FilmCharacters> characters;
+    @ManyToOne
+    @JsonIgnore
+    private Episode episode;
 }
