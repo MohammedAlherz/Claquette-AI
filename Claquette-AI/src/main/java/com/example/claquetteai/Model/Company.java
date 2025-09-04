@@ -2,7 +2,6 @@ package com.example.claquetteai.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -17,16 +16,13 @@ import java.util.Set;
 @Entity
 public class Company {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotEmpty(message = "Company name cannot be null")
-    @Size(min = 2, max = 200, message = "Company name should be between 2 and 200 characters")
+
     @Column(columnDefinition = "varchar(200) not null")
     private String name;
 
-    @NotEmpty(message = "Commercial registration number cannot be null")
-    @Size(max = 50, message = "Commercial registration number should not exceed 50 characters")
+
     @Column(columnDefinition = "varchar(50) unique not null")
     private String commercialRegNo;
 
