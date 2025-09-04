@@ -26,7 +26,7 @@ public class ProjectDTOOUT {
 
     private String targetAudience;
 
-    private String location;
+    private List<String> location;
 
     private String status;
 

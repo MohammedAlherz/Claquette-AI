@@ -50,9 +50,10 @@ public class Project {
     @Column(columnDefinition = "double")
     private Double budget;
 
-    @Size(max = 200, message = "Location should not exceed 200 characters")
-    @Column(columnDefinition = "varchar(200)")
-    private String location;
+    @ElementCollection
+    @CollectionTable(name = "project_locations", joinColumns = @JoinColumn(name = "project_id"))
+    @Column(name = "location")
+    private List<String> location;
 
     @Size(max = 100, message = "Target audience should not exceed 100 characters")
     @Column(columnDefinition = "varchar(100)")

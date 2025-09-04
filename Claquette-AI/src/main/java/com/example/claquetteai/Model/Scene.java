@@ -47,4 +47,8 @@ public class Scene {
     @ManyToOne
     @JsonIgnore
     private Episode episode;
+
+    @ManyToOne
+    @JsonIgnore
+    private Film film;  // Add this field
 }

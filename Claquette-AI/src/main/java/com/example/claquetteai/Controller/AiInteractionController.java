@@ -17,8 +17,10 @@ public class AiInteractionController {
     private final AiInteractionService aiInteractionService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse> generateFilm(@RequestParam("description") String description,@RequestParam("episodes") Integer episodes) throws Exception {
-        aiInteractionService.generateFullScreenplay(description, episodes);
-        return ResponseEntity.ok(new ApiResponse("project generated successfully"));
+    public ResponseEntity<ApiResponse> generateScreenplay(
+            @RequestParam("projectId") Integer projectId) throws Exception {
+
+        aiInteractionService.generateFullScreenplay(projectId);
+        return ResponseEntity.ok(new ApiResponse("Screenplay generated successfully"));
     }
 }
