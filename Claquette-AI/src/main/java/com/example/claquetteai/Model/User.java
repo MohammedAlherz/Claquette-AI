@@ -37,11 +37,11 @@ public class User {
     private String password;
 
     @CreationTimestamp
-    @Column()
+    @Column
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column()
+    @Column
     private LocalDateTime updatedAt;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)

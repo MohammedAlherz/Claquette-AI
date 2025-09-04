@@ -43,9 +43,9 @@ public class Project {
     @Column(columnDefinition = "varchar(50)")
     private String genre;
 
-    @DecimalMin(value = "0.00", message = "Budget must be non-negative")
-    @Column(columnDefinition = "decimal(14,2)")
-    private BigDecimal budget;
+    @NotNull(message = "budget can not be null")
+    @Column(columnDefinition = "double")
+    private Double budget;
 
     @Size(max = 200, message = "Location should not exceed 200 characters")
     @Column(columnDefinition = "varchar(200)")

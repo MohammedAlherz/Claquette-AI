@@ -50,6 +50,4 @@ public class Episode {
     @ManyToOne
     @JsonIgnore
     private Project project;
-    @OneToMany(mappedBy = "episode", cascade = CascadeType.ALL)
-    private List<Scene> scenes;
 }

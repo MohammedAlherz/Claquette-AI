@@ -31,7 +31,7 @@ public class AiInteraction {
     @Column(columnDefinition = "varchar(50)")
     private String interactionType; // e.g., "SCRIPT_GENERATION", "CHARACTER_DEVELOPMENT", "SCENE_ANALYSIS"
 
-    @Column(columnDefinition = "int default 1")
+    @Column(columnDefinition = "int default 0")
     private Integer creditsUsed; // How many AI credits this interaction consumed
 
     @CreationTimestamp

@@ -46,6 +46,4 @@ public class Film {
     @MapsId
     @JsonIgnore
     private Project project;
-    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL)
-    private List<Scene> scenes;
 }

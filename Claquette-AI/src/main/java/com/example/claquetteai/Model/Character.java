@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -20,8 +21,6 @@ public class Character {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
-
 
     @NotEmpty(message = "Character name cannot be null")
     @Size(min = 1, max = 100, message = "Character name should be between 1 and 100 characters")
@@ -37,16 +36,14 @@ public class Character {
     @Column(columnDefinition = "varchar(200)")
     private String roleInStory;
 
-    @Size(max = 500, message = "Personality traits should not exceed 500 characters")
-    @Column(columnDefinition = "varchar(500)")
+    @Column(columnDefinition = "text")
     private String personalityTraits;
 
-    @Size(max = 1000, message = "Background should not exceed 1000 characters")
-    @Column(columnDefinition = "varchar(1000)")
+    @Column(columnDefinition = "text")
     private String background;
 
     @Size(max = 1000, message = "Character arc should not exceed 1000 characters")
-    @Column(columnDefinition = "varchar(1000)")
+    @Column(columnDefinition = "text")
     private String characterArc;
 
     @CreationTimestamp
@@ -60,4 +57,8 @@ public class Character {
     @ManyToOne
     @JsonIgnore
     private Project project;
+
+    @OneToMany(mappedBy = "character", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private Set<Scene> scenes;
 }

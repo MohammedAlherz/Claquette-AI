@@ -19,24 +19,19 @@ public class Scene {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-
-
-    @NotNull(message = "Scene number cannot be null")
-    @Min(value = 1, message = "Scene number must be at least 1")
-    @Column(columnDefinition = "int not null")
+    @Column(columnDefinition = "int")
     private Integer sceneNumber;
 
-    @Size(max = 200, message = "Setting should not exceed 200 characters")
-    @Column(columnDefinition = "varchar(200)")
+    @Column(columnDefinition = "text")
     private String setting;
 
     @Column(columnDefinition = "text")
     private String actions;
 
-    @Column(columnDefinition = "json")
+    @Column(columnDefinition = "text")
     private String dialogue;
 
-    @Column(columnDefinition = "json")
+    @Column(columnDefinition = "text")
     private String departmentNotes;
 
     @CreationTimestamp
@@ -49,9 +44,5 @@ public class Scene {
 
     @ManyToOne
     @JsonIgnore
-    private Episode episode;
-
-    @ManyToOne
-    @JsonIgnore
-    private Film film;
+    private Character character;
 }

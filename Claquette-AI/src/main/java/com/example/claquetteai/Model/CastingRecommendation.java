@@ -33,9 +33,9 @@ public class CastingRecommendation {
     @Column(columnDefinition = "text")
     private String reasoning;
 
-    @Size(max = 500, message = "Known for should not exceed 500 characters")
+    @Size(max = 500, message = "profile should not exceed 500 characters")
     @Column(columnDefinition = "varchar(500)")
-    private String knownFor;
+    private String profile;
 
     @Column(columnDefinition = "decimal(3,2)")
     private Double matchScore; // How well the actor matches the character (0-1)
