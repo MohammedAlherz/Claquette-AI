@@ -15,15 +15,13 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-
-@Table(name = "characters") // Use plural or different name
-public class Character {
+public class FilmCharacters {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotEmpty(message = "Character name cannot be null")
-    @Size(min = 1, max = 100, message = "Character name should be between 1 and 100 characters")
+    @NotEmpty(message = "FilmCharacters name cannot be null")
+    @Size(min = 1, max = 100, message = "FilmCharacters name should be between 1 and 100 characters")
     @Column(columnDefinition = "varchar(100) not null")
     private String name;
 
@@ -42,7 +40,7 @@ public class Character {
     @Column(columnDefinition = "text")
     private String background;
 
-    @Size(max = 1000, message = "Character arc should not exceed 1000 characters")
+    @Size(max = 1000, message = "FilmCharacters arc should not exceed 1000 characters")
     @Column(columnDefinition = "text")
     private String characterArc;
 
@@ -58,7 +56,7 @@ public class Character {
     @JsonIgnore
     private Project project;
 
-    @OneToMany(mappedBy = "character", cascade = CascadeType.ALL)
+    @ManyToMany(mappedBy = "characters")
     @JsonIgnore
     private Set<Scene> scenes;
 }

@@ -42,7 +42,8 @@ public class AiInteraction {
     @Column
     private LocalDateTime updatedAt;
 
-    @ManyToOne
+    @OneToOne
+    @MapsId
     @JsonIgnore
     private Project project;
 }

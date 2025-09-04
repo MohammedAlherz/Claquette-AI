@@ -7,9 +7,9 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -30,9 +30,6 @@ public class Project {
     @Column(columnDefinition = "varchar(1000)")
     private String description;
 
-    @Column(columnDefinition = "text")
-    private String scenario;
-
     @NotEmpty(message = "Project type cannot be null")
     @Pattern(regexp = "FILM|SERIES",
             message = "Project type must be: FILM or SERIES")
@@ -49,7 +46,7 @@ public class Project {
 
     @Size(max = 200, message = "Location should not exceed 200 characters")
     @Column(columnDefinition = "varchar(200)")
-    private String location;
+    private List<String> location;
 
     @Size(max = 100, message = "Target audience should not exceed 100 characters")
     @Column(columnDefinition = "varchar(100)")
@@ -60,6 +57,7 @@ public class Project {
             message = "Status must be: IN_DEVELOPMENT, IN_PRODUCTION, PRE_PRODUCTION, COMPLETED, or DELETED")
     @Column(columnDefinition = "varchar(20) not null")
     private String status;
+
 
     @NotNull(message = "Start project date cannot be null")
     @Column(columnDefinition = "datetime not null")
@@ -88,14 +86,17 @@ public class Project {
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Episode> episodes;
+    private Set<Episode> episodes;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
-    private List<Character> characters;
+    @JsonIgnore
+    private Set<FilmCharacters> characters;
+
+    @OneToOne(mappedBy = "project", cascade = CascadeType.ALL)
+    @PrimaryKeyJoinColumn
+    @JsonIgnore
+    private AiInteraction aiInteractions;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
-    private List<AiInteraction> aiInteractions;
-
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
-    private List<CastingRecommendation> castingRecommendations;
+    private Set<CastingRecommendation> castingRecommendations;
 }

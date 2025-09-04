@@ -2,18 +2,17 @@ package com.example.claquetteai.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "scenes")
 public class Scene {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,7 +41,7 @@ public class Scene {
     @Column
     private LocalDateTime updatedAt;
 
-    @ManyToOne
+    @ManyToMany
     @JsonIgnore
-    private Character character;
+    private Set<FilmCharacters> characters;
 }

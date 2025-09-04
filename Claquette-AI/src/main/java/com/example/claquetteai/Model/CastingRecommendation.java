@@ -20,8 +20,8 @@ public class CastingRecommendation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotEmpty(message = "Character name cannot be null")
-    @Size(min = 1, max = 100, message = "Character name should be between 1 and 100 characters")
+    @NotEmpty(message = "FilmCharacters name cannot be null")
+    @Size(min = 1, max = 100, message = "FilmCharacters name should be between 1 and 100 characters")
     @Column(columnDefinition = "varchar(100) not null")
     private String characterName;
 
