@@ -46,7 +46,7 @@ public class AiInteractionService {
             project.setFilms(film);
         } else {
             // For series, determine episode count and generate episodes using EpisodeService
-            int episodeCount = determineEpisodeCount(project);
+            int episodeCount = project.getEpisodeCount();
             Set<Episode> episodes = new HashSet<>();
 
             for (int i = 1; i <= episodeCount; i++) {
@@ -68,18 +68,18 @@ public class AiInteractionService {
         return projectRepository.save(project);
     }
 
-    /**
-     * Determines episode count for series projects
-     * You can extend this logic based on your business rules
-     */
-    private int determineEpisodeCount(Project project) {
-        // Default based on genre or other criteria
-        if (project.getGenre() != null && project.getGenre().toLowerCase().contains("mini")) {
-            return 3; // Mini series
-        } else if ("Comedy".equalsIgnoreCase(project.getGenre())) {
-            return 8; // Comedy series
-        } else {
-            return 6; // Default series length
-        }
-    }
+//    /**
+//     * Determines episode count for series projects
+//     * You can extend this logic based on your business rules
+//     */
+//    private int determineEpisodeCount(Project project) {
+//        // Default based on genre or other criteria
+//        if (project.getGenre() != null && project.getGenre().toLowerCase().contains("mini")) {
+//            return 3; // Mini series
+//        } else if ("Comedy".equalsIgnoreCase(project.getGenre())) {
+//            return 8; // Comedy series
+//        } else {
+//            return 6; // Default series length
+//        }
+//    }
 }
