@@ -26,7 +26,7 @@ public class CompanySubscriptionService {
     private final CompanyRepository companyRepository;
     private final PaymentRepository paymentRepository;
 
-    private static final BigDecimal ADVANCED_PRICE = new BigDecimal("99.99");
+    private static final Double ADVANCED_PRICE = 99.99;
 
     // 🟢 Get all subscriptions
     public List<CompanySubscriptionDTOOUT> getAllSubscriptions() {
@@ -67,18 +67,17 @@ public class CompanySubscriptionService {
         subscriptionRepository.save(subscription);
 
         // ⚡ إذا الخطة ADVANCED → أنشئ Payment مربوط بالاشتراك
-        if ("ADVANCED".equalsIgnoreCase(dto.getPlanType())) {
-            Payment payment = new Payment();
-            payment.setId(subscription.getId()); // نفس الـ id (OneToOne @MapsId)
-            payment.setCompanySubscription(subscription);
-            payment.setCurrency("SAR");
-            payment.setAmount(ADVANCED_PRICE.doubleValue());
-            payment.setDescription("Subscription Payment for Company " + company.getName());
-            payment.setCallbackUrl("https://your-server.com/api/payments/callback");
-
-            subscription.setPayment(payment);
-            paymentRepository.save(payment);
-        }
+//        if ("ADVANCED".equalsIgnoreCase(dto.getPlanType())) {
+//            Payment payment = new Payment();
+//            payment.setCompanySubscription(subscription);
+//            payment.setCurrency("SAR");
+//            payment.setAmount(ADVANCED_PRICE.doubleValue());
+//            payment.setDescription("Subscription Payment for Company " + company.getName());
+//            payment.setCallbackUrl("https://api.moyasar.com/v1/payments/callback");
+//
+//            subscription.setPayment(payment);
+//            paymentRepository.save(payment);
+//        }
     }
 
     // 🟢 Update subscription status

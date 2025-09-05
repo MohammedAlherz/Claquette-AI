@@ -20,6 +20,5 @@ public class CompanySubscriptionDTOIN {
     @Pattern(regexp = "FREE|ADVANCED", message = "Plan type must be: FREE or ADVANCED")
     private String planType;
 
-    @NotNull(message = "Start date cannot be null")
-    private LocalDateTime startDate;
+    private LocalDateTime startDate = LocalDateTime.now();
 }

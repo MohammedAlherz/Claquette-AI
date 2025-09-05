@@ -26,6 +26,8 @@ public class Company {
     @Column(columnDefinition = "varchar(50) unique not null")
     private String commercialRegNo;
 
+    private Boolean isSubscribed = false;
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt;

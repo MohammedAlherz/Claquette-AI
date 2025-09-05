@@ -19,5 +19,5 @@ public class CompanySubscriptionDTOOUT {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime nextBillingDate;
-    private BigDecimal monthlyPrice;
+    private Double monthlyPrice;
 }

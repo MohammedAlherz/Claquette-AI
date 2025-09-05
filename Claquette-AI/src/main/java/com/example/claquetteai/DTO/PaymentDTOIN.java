@@ -18,7 +18,7 @@ public class PaymentDTOIN {
     private String cvc;
     private String month;
     private String year;
-    private double amount;
+    private Double amount;
     private String currency;
     private String description;
     private String callbackUrl;

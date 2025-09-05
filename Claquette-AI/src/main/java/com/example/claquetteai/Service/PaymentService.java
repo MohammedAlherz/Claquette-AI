@@ -5,48 +5,68 @@ import com.example.claquetteai.DTO.PaymentDTOIN;
 import com.example.claquetteai.DTO.PaymentDTOOUT;
 import com.example.claquetteai.Model.CompanySubscription;
 import com.example.claquetteai.Model.Payment;
+import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanySubscriptionRepository;
 import com.example.claquetteai.Repository.PaymentRepository;
+import com.example.claquetteai.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
+
+    private final CompanySubscriptionRepository companySubscriptionRepository;
+    private final UserRepository userRepository;
 
 
     @Value("${moyasar.api.key}")
     private String apiKey;
 
-    private static final String MOYASAR_API_URL = "https://api.moyasar.com/v1/payments";
+    private static final String MOYASAR_API_URL = "https://api.moyasar.com/v1/payments/";
 
     private final PaymentRepository paymentRepository;
-    private final CompanySubscriptionRepository subscriptionRepository;
-    private final CompanySubscriptionService subscriptionService;
-    public PaymentDTOOUT processPayment(PaymentDTOIN paymentRequest, Integer subscriptionId) {
-        String callbackUrl = "https://your-server.com/api/payments/callback";
+
+    public ResponseEntity<String> processPayment(Payment paymentRequest, Integer subscriptionId) {
+        CompanySubscription companySubscription = companySubscriptionRepository.findCompanySubscriptionById(subscriptionId);
+        if (companySubscription == null) {
+            throw new ApiException("Subscription not found");
+        }
+
+
+        String callbackUrl = "https://dashboard.moyasar.com/entities/f0144c0a-b82c-4fdf-aefb-6c7be5b87cb7/payments"; // Replace with your real callback
+        paymentRequest.setName(companySubscription.getCompany().getUser().getFullName());
+        paymentRequest.setAmount(companySubscription.getMonthlyPrice());
+        paymentRequest.setCurrency("SAR");
+
 
         String requestBody = String.format(
-                "source[type]=creditcard&source[name]=%s&source[number]=%s&source[cvc]=%s" +
-                        "&source[month]=%s&source[year]=%s&amount=%d&currency=%s&description=%s&callback_url=%s",
+                "source[type]=card&source[name]=%s&source[number]=%s&source[cvc]=%s" +
+                        "&source[month]=%s&source[year]=%s&amount=%d&currency=%s&callback_url=%s",
                 paymentRequest.getName(),
                 paymentRequest.getNumber(),
                 paymentRequest.getCvc(),
                 paymentRequest.getMonth(),
                 paymentRequest.getYear(),
-                (int) (paymentRequest.getAmount() * 100),
+                (int) (paymentRequest.getAmount() * 100), // convert SAR to halalah
                 paymentRequest.getCurrency(),
-                paymentRequest.getDescription(),
                 callbackUrl
         );
 
+        // 🔐 Set HTTP headers
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(apiKey, "");
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
+        // ⛓ Wrap payload and headers
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         RestTemplate restTemplate = new RestTemplate();
@@ -57,47 +77,202 @@ public class PaymentService {
                 String.class
         );
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
-            if (subscription == null) {
-                throw new ApiException("Subscription not found with id " + subscriptionId);
-            }
 
-            subscriptionService.updateSubscriptionStatus(subscription.getId(), "ACTIVE");
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+            String transactionId = jsonResponse.get("id").asText();
+            String transactionUrl = jsonResponse.get("source").get("transaction_url").asText();
 
-            Payment payment = new Payment();
-            payment.setId(subscription.getId());
-            payment.setName(paymentRequest.getName());
-            payment.setNumber(paymentRequest.getNumber());
-            payment.setCvc(paymentRequest.getCvc());
-            payment.setMonth(paymentRequest.getMonth());
-            payment.setYear(paymentRequest.getYear());
-            payment.setAmount(paymentRequest.getAmount());
-            payment.setCurrency(paymentRequest.getCurrency());
-            payment.setDescription(paymentRequest.getDescription());
-            payment.setCallbackUrl(callbackUrl);
-            payment.setCompanySubscription(subscription);
+            paymentRequest.setTransactionId(transactionId);
+            paymentRequest.setRedirectToCompletePayment(transactionUrl); // ✅ رابط الدفع
+            paymentRequest.setCompanySubscription(companySubscription);
+            paymentRequest.setPaymentDate(LocalDateTime.now());
+            paymentRequest.setStatus(jsonResponse.get("status").asText()); // initiated
+            paymentRepository.save(paymentRequest);
 
-            paymentRepository.save(payment);
+            // رجّع للـ frontend transaction_url عشان يسوي redirect
+            return ResponseEntity.ok(transactionUrl);
 
-            return new PaymentDTOOUT(
-                    payment.getId(),
-                    payment.getAmount(),
-                    payment.getCurrency(),
-                    payment.getDescription(),
-                    "SUCCESS",
-                    "https://redirect.url/success"
-            );
+        } catch (JsonProcessingException e) {
+            throw new ApiException("Error parsing JSON");
         }
 
-        return new PaymentDTOOUT(
-                null,
-                paymentRequest.getAmount(),
-                paymentRequest.getCurrency(),
-                paymentRequest.getDescription(),
-                "FAILED",
-                null
-        );
+//        if (response.getStatusCode().is2xxSuccessful()) {
+//            CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
+//            if (subscription == null) {
+//                throw new ApiException("Subscription not found with id " + subscriptionId);
+//            }
+//
+//            subscriptionService.updateSubscriptionStatus(subscription.getId(), "ACTIVE");
+//
+//            Payment payment = new Payment();
+//            payment.setId(subscription.getId());
+//            payment.setName(paymentRequest.getName());
+//            payment.setNumber(paymentRequest.getNumber());
+//            payment.setCvc(paymentRequest.getCvc());
+//            payment.setMonth(paymentRequest.getMonth());
+//            payment.setYear(paymentRequest.getYear());
+//            payment.setAmount(paymentRequest.getAmount());
+//            payment.setCurrency(paymentRequest.getCurrency());
+//            payment.setDescription(paymentRequest.getDescription());
+//            payment.setCallbackUrl(callbackUrl);
+//            payment.setCompanySubscription(subscription);
+//
+//            paymentRepository.save(payment);
+//
+//            return new PaymentDTOOUT(
+//                    payment.getId(),
+//                    payment.getAmount(),
+//                    payment.getCurrency(),
+//                    payment.getDescription(),
+//                    "SUCCESS",
+//                    "https://redirect.url/success"
+//            );
+//        }
+//
+//        return new PaymentDTOOUT(
+//                null,
+//                paymentRequest.getAmount(),
+//                paymentRequest.getCurrency(),
+//                paymentRequest.getDescription(),
+//                "FAILED",
+//                null
+//        );
     }
 
-}
+
+    public String subscribePaymentStatus(Integer userId, Integer subscriptionId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("user not found");
+        }
+        CompanySubscription companySubscription = companySubscriptionRepository.findCompanySubscriptionById(subscriptionId);
+        if (companySubscription == null) {
+            throw new ApiException("subscription not found");
+        }
+        if (!companySubscription.getStatus().equalsIgnoreCase("PENDING")) {
+            throw new ApiException("Subscription is already confirmed or invalid");
+        }
+        Payment payment = paymentRepository.findPaymentByCompanySubscription(companySubscription);
+        if (payment == null) {
+            throw new ApiException("Payment not found");
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(apiKey, "");
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                MOYASAR_API_URL + payment.getTransactionId(),
+                HttpMethod.GET,
+                entity,
+                String.class
+        );
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+
+            String paymentStatus = jsonResponse.get("status").asText();
+
+            if (paymentStatus.equalsIgnoreCase("paid")) {
+                companySubscription.setStatus("CONFIRMED");
+                companySubscription.setIsSubscribed(true);
+                companySubscription.setPayment(payment);
+                companySubscriptionRepository.save(companySubscription);
+
+                user.getCompany().setIsSubscribed(true);
+                userRepository.save(user);
+            }
+
+            return response.getBody();
+        } catch (Exception e) {
+            throw new ApiException("Failed to parse Moyasar response");
+        }
+
+    }
+
+    public String updateAndConfirmPayment(Integer subscriptionId, String transactionId) throws JsonProcessingException {
+        // 1. Fetch subscription
+        CompanySubscription subscription = companySubscriptionRepository.findCompanySubscriptionById(subscriptionId);
+        if (subscription == null) {
+            throw new ApiException("Subscription not found with id " + subscriptionId);
+        }
+
+        // 2. Fetch payment
+        Payment payment = paymentRepository.findPaymentByCompanySubscription(subscription);
+        if (payment == null) {
+            throw new ApiException("Payment not found for subscription " + subscriptionId);
+        }
+
+        // 3. Decide which transactionId to use
+        String txId = (transactionId != null && !transactionId.isEmpty())
+                ? transactionId
+                : payment.getTransactionId();
+
+        // 4. Call Moyasar API
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(apiKey, "");
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> response = restTemplate.exchange(
+                MOYASAR_API_URL + txId,
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode json = mapper.readTree(response.getBody());
+        if (json.has("status")) {
+            String status = json.get("status").asText();
+            payment.setStatus(status);
+            if ("paid".equalsIgnoreCase(status)) {
+                payment.setPaymentDate(LocalDateTime.now());
+            }
+            paymentRepository.save(payment);
+            if ("paid".equalsIgnoreCase(status)) {
+                subscription.setStatus("ACTIVE");
+                subscription.setIsSubscribed(true);
+                subscription.setPayment(payment);
+                subscription.setNextBillingDate(LocalDateTime.now().plusDays(30));
+                companySubscriptionRepository.save(subscription);
+
+                subscription.getCompany().setIsSubscribed(true);
+                userRepository.save(subscription.getCompany().getUser());
+            }
+            return response.getBody();
+        } else {
+            String errorMessage = json.has("message") ? json.get("message").asText() : "Unknown error";
+            throw new ApiException("Moyasar error: " + errorMessage);
+        }
+//            // 5. Update payment
+//            payment.setStatus(status);
+//            if ("paid".equalsIgnoreCase(status)) {
+//                payment.setPaymentDate(LocalDateTime.now());
+//            }
+//            paymentRepository.save(payment);
+//
+//            // 6. If paid → update subscription + company
+//            if ("paid".equalsIgnoreCase(status)) {
+//                subscription.setStatus("CONFIRMED");
+//                subscription.setIsSubscribed(true);
+//                subscription.setPayment(payment);
+//                subscription.setNextBillingDate(LocalDateTime.now().plusDays(30));
+//                companySubscriptionRepository.save(subscription);
+//
+//                subscription.getCompany().setIsSubscribed(true);
+//                userRepository.save(subscription.getCompany().getUser());
+//            }
+//
+//            // 7. Return raw response (you could also return status only if you prefer)
+//            return response.getBody();
+//
+//        } catch (Exception e) {
+//            throw new ApiException("Failed to parse Moyasar response");
+//        }
+        }
+    }

@@ -1,8 +1,11 @@
 package com.example.claquetteai.Controller;
 
+import com.example.claquetteai.Api.ApiResponse;
 import com.example.claquetteai.DTO.PaymentDTOIN;
 import com.example.claquetteai.DTO.PaymentDTOOUT;
+import com.example.claquetteai.Model.Payment;
 import com.example.claquetteai.Service.PaymentService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +20,25 @@ public class PaymentController {
 
 
     @PostMapping("/card/{subscriptionId}")
-    public ResponseEntity<PaymentDTOOUT> processPayment(
+    public ResponseEntity<String> processPayment(
             @PathVariable Integer subscriptionId,
-            @RequestBody @Valid PaymentDTOIN paymentRequest
+            @RequestBody @Valid Payment paymentRequest
     ) {
-        PaymentDTOOUT response = paymentService.processPayment(paymentRequest, subscriptionId);
-        return ResponseEntity.ok(response);
+        return paymentService.processPayment(paymentRequest, subscriptionId);
     }
+
+    @PostMapping("/{userId}/sub/{subscriptionId}")
+    public ResponseEntity<?> processStatus(@PathVariable Integer userId,@PathVariable Integer subscriptionId){
+        String response = paymentService.subscribePaymentStatus(userId, subscriptionId);
+        return ResponseEntity.ok(new ApiResponse(response));
+    }
+
+    @GetMapping("/payments/confirm/{subscriptionId}/transaction/{transactionId}")
+    public ResponseEntity<String> confirmPayment(@PathVariable Integer subscriptionId, @PathVariable String transactionId) throws JsonProcessingException {
+        String result = paymentService.updateAndConfirmPayment(subscriptionId, transactionId);
+        return ResponseEntity.ok(result);
+    }
+
+
 
 }

@@ -41,7 +41,9 @@ public class CompanySubscription {
     private LocalDateTime nextBillingDate;
 
     @Column(columnDefinition = "decimal(10,2)")
-    private BigDecimal monthlyPrice; // Can be null for FREE plan
+    private Double monthlyPrice; // Can be null for FREE plan
+
+    private Boolean isSubscribed = false;
 
 
     @CreationTimestamp
