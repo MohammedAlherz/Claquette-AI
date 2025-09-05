@@ -36,6 +36,13 @@ public class User {
     @Column(columnDefinition = "varchar(20) not null")
     private String password;
 
+    @Lob @Basic(fetch = FetchType.LAZY)
+    @Column(columnDefinition = "LONGTEXT")
+    private String profileImageBase64;
+
+    @Column(length = 64)
+    private String profileImageContentType;
+
     private Integer useAI = 1;
 
     @CreationTimestamp

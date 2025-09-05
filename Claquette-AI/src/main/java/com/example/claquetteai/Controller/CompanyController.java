@@ -5,8 +5,10 @@ import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.Service.CompanyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/company")
@@ -38,4 +40,19 @@ public class CompanyController {
         companyService.deleteCompany(id);
         return ResponseEntity.ok().body(new ApiResponse("Company deleted successfully"));
     }
+
+    @PostMapping(value = "/{userId}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse> uploadUserPhoto(@PathVariable Integer userId,
+                                                @RequestParam("file") MultipartFile file) {
+        companyService.uploadProfilePhoto(userId, file);
+        return ResponseEntity.ok(new ApiResponse("photo uploaded successfully"));
+    }
+
+    @GetMapping("/{userId}/photo")
+    public ResponseEntity<byte[]> getUserPhoto(@PathVariable Integer userId) {
+        return companyService.getUserPhotoResponse(userId);
+    }
+
+
+
 }

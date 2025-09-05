@@ -79,6 +79,11 @@ public class Project {
     @Column(columnDefinition = "int not null")
     private Integer episodeCount;
 
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(columnDefinition = "longtext")
+    private String posterImageBase64;
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt;

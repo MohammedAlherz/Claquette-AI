@@ -7,8 +7,10 @@ import com.example.claquetteai.Model.Project;
 import com.example.claquetteai.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -62,6 +64,23 @@ public class ProjectController {
     @GetMapping("/{userId}/project-characters")
     public ResponseEntity<List<CharactersDTOOUT>> projectCharacters(@PathVariable Integer userId, @PathVariable Integer projectId){
         return ResponseEntity.ok(projectService.projectCharacters(userId, projectId));
+    }
+
+    @PostMapping("/{userId}/generate-poster/{projectId}")
+    public ResponseEntity<ApiResponse> generateAIPoster(@PathVariable Integer userId, @PathVariable Integer projectId) throws Exception {
+        projectService.generateAndAttachPoster(userId, projectId);
+        return ResponseEntity.ok(new ApiResponse("poster generated successfully"));
+    }
+
+    @GetMapping(value = "/{userId}/project/{projectId}/poster.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getPosterPng(@PathVariable Integer userId,@PathVariable Integer projectId) {
+        return projectService.getPosterPngResponse(userId, projectId);
+    }
+
+    @PutMapping("/{userId}/project/{projectId}/poster")
+    public ResponseEntity<?> uploadPoster(@PathVariable Integer userId,@PathVariable Integer projectId, @RequestParam("file") MultipartFile file) {
+        projectService.uploadPoster(userId,projectId, file);
+        return ResponseEntity.ok(new ApiResponse("poster uploaded successfully"));
     }
 
 }
