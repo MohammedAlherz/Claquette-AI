@@ -188,7 +188,8 @@ public class PromptBuilderService {
                 { 
                   "actor": "string (ممثل سعودي من الجيل الجديد)", 
                   "why": "string", 
-                  "match_percent": number 
+                  "match_percent": number,
+                  "profile": "string" (نبذه عن تاريخ الممثل هذا) 
                 }
               ]
             }

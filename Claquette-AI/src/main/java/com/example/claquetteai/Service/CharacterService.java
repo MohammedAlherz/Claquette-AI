@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -35,6 +36,10 @@ public class CharacterService {
 
         // Save all characters
         return new HashSet<>(characterRepository.saveAll(characters));
+    }
+
+    public Integer charactersCount(Integer userId){
+        return characterRepository.countFilmCharactersByProject_Company_User_Id(userId);
     }
 
 }

@@ -1,14 +1,20 @@
 package com.example.claquetteai.Service;
 
 import com.example.claquetteai.Api.ApiException;
+import com.example.claquetteai.DTO.CharactersDTOOUT;
 import com.example.claquetteai.DTO.ProjectDTOOUT;
 import com.example.claquetteai.Model.Company;
+import com.example.claquetteai.Model.FilmCharacters;
 import com.example.claquetteai.Model.Project;
+import com.example.claquetteai.Model.User;
+import com.example.claquetteai.Repository.CharacterRepository;
 import com.example.claquetteai.Repository.CompanyRepository;
 import com.example.claquetteai.Repository.ProjectRepository;
+import com.example.claquetteai.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +24,8 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final CompanyRepository companyRepository;
+    private final CharacterRepository characterRepository;
+    private final UserRepository userRepository;
 
     public List<ProjectDTOOUT> getAllProjects() {
         return projectRepository.findAll().stream()
@@ -25,10 +33,10 @@ public class ProjectService {
                 .collect(Collectors.toList());
     }
 
-    public ProjectDTOOUT getProjectById(Integer id) {
-        Project project = projectRepository.findProjectById(id);
-        if (project == null) {
-            throw new ApiException("Project not found with id " + id);
+    public List<ProjectDTOOUT> getProjectById(Integer userId) {
+        List<Project> project = projectRepository.findProjectsByCompany_User_Id((userId));
+        if (project.isEmpty()) {
+            throw new ApiException("Project not found with id " + userId);
         }
         return convertToDTO(project);
     }
@@ -84,6 +92,61 @@ public class ProjectService {
         dto.setStartProjectDate(project.getStartProjectDate());
         dto.setEndProjectDate(project.getEndProjectDate());
 
+        return dto;
+    }
+    private List<ProjectDTOOUT> convertToDTO(List<Project> projects) {
+        List<ProjectDTOOUT> dtoList = new ArrayList<>();
+        for (Project p : projects) {
+            ProjectDTOOUT dto = new ProjectDTOOUT();
+            dto.setTitle(p.getTitle());
+            dto.setDescription(p.getDescription());
+            dto.setProjectType(p.getProjectType());
+            dto.setGenre(p.getGenre());
+            dto.setBudget(p.getBudget());
+            dto.setTargetAudience(p.getTargetAudience());
+            dto.setLocation(p.getLocation());
+            dto.setStatus(p.getStatus());
+            dto.setStartProjectDate(p.getStartProjectDate());
+            dto.setEndProjectDate(p.getEndProjectDate());
+            dtoList.add(dto);
+        }
+        return dtoList;
+    }
+
+
+    public Integer projectsCount(Integer userId){
+        List<Project> projects = projectRepository.findProjectsByCompany_User_Id(userId);
+        return projects.size();
+    }
+
+
+    public Double getTotalBudget(Integer userId){
+        List<Project> projects = projectRepository.findProjectsByCompany_User_Id(userId);
+        Double total = 0.0;
+        for (Project p : projects){
+            total+=p.getBudget();
+        }
+        return total;
+    }
+
+    public List<CharactersDTOOUT> projectCharacters(Integer userId, Integer projectId){
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null){
+            throw new ApiException("project not found");
+        }
+        User user = userRepository.findUserById(userId);
+        if (user == null){
+            throw new ApiException("user not found");
+        }
+        if (!project.getCompany().getUser().equals(user)){
+            throw new ApiException("not authorised to do this");
+        }
+        List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
+        List<CharactersDTOOUT> dto = new ArrayList<>();
+        for (FilmCharacters filmCharacters : characters ){
+            CharactersDTOOUT charactersDTOOUT = new CharactersDTOOUT(filmCharacters.getName(),filmCharacters.getAge(),filmCharacters.getBackground());
+            dto.add(charactersDTOOUT);
+        }
         return dto;
     }
 }

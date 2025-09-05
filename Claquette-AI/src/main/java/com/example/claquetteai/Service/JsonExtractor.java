@@ -439,7 +439,7 @@ public class JsonExtractor {
 
                 // Convert percentage to decimal (87% -> 0.87)
                 recommendation.setMatchScore(suggestionNode.path("match_percent").asDouble() / 100.0);
-                recommendation.setProfile("Casting suggestion from AI");
+                recommendation.setProfile(suggestionNode.path("profile").asText());
 
                 // Set timestamps
                 recommendation.setCreatedAt(LocalDateTime.now());

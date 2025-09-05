@@ -1,4 +1,5 @@
 package com.example.claquetteai.Service;
+import com.example.claquetteai.DTO.CastingRecommendationDTOOUT;
 import com.example.claquetteai.Model.CastingRecommendation;
 import com.example.claquetteai.Model.Project;
 import com.example.claquetteai.Repository.CastingRecommendationRepository;
@@ -6,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 @Service
 @RequiredArgsConstructor
@@ -40,5 +42,9 @@ public class CastingService {
         // Save all casting recommendations
         return new HashSet<>(castingRepository.saveAll(casting));
     }
+
+//    public List<CastingRecommendationDTOOUT> castingRecommendations(Integer userId, Integer projectId){
+//
+//    }
 
 }
