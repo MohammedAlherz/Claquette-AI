@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/pay")
 @RequiredArgsConstructor
@@ -20,7 +22,7 @@ public class PaymentController {
 
 
     @PostMapping("/card/{subscriptionId}")
-    public ResponseEntity<String> processPayment(
+    public ResponseEntity<Map<String, String>> processPayment(
             @PathVariable Integer subscriptionId,
             @RequestBody @Valid Payment paymentRequest
     ) {
