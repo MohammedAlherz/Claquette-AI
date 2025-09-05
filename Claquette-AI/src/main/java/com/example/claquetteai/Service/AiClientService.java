@@ -160,9 +160,9 @@ public class AiClientService {
             {"role": "user", "content": %s}
           ],
           "temperature": 0.7
+          "max_tokens": 5000
         }
         """.formatted(mapper.writeValueAsString(prompt));
-//        "max_tokens": 10000
 
         // Use WebClient to call OpenAI
         String responseBody = webClientBuilder
