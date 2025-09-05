@@ -260,6 +260,8 @@ public class PaymentService {
 
                 subscription.getCompany().setIsSubscribed(true);
                 userRepository.save(subscription.getCompany().getUser());
+                //TODO
+                userRepository.findUserByCompany_ActiveSubscription(subscription).getEmail();
             }
             return response.getBody();
         } else {
