@@ -4,10 +4,7 @@ import com.example.claquetteai.Api.ApiResponse;
 import com.example.claquetteai.Service.AiInteractionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/ai-interaction")
@@ -16,11 +13,11 @@ public class AiInteractionController {
 
     private final AiInteractionService aiInteractionService;
 
-    @PostMapping
+    @PostMapping("/{userId}")
     public ResponseEntity<ApiResponse> generateScreenplay(
-            @RequestParam("projectId") Integer projectId) throws Exception {
+            @RequestParam("projectId") Integer projectId, @PathVariable Integer userId) throws Exception {
 
-        aiInteractionService.generateFullScreenplay(projectId);
+        aiInteractionService.generateFullScreenplay(projectId, userId);
         return ResponseEntity.ok(new ApiResponse("Screenplay generated successfully"));
     }
 }

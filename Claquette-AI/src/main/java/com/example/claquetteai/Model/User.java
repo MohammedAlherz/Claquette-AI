@@ -36,6 +36,8 @@ public class User {
     @Column(columnDefinition = "varchar(20) not null")
     private String password;
 
+    private Integer useAI = 1;
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt;

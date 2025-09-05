@@ -1,5 +1,6 @@
 package com.example.claquetteai.Service;
 
+import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.Model.*;
 import com.example.claquetteai.Repository.*;
 
@@ -17,14 +18,22 @@ public class AiInteractionService {
     private final CharacterService characterService;
     private final EpisodeService episodeService;
     private final CastingService castingService;
+    private final UserRepository userRepository;
 
     /**
      * Main method to generate complete screenplay
      */
-    public Project generateFullScreenplay(Integer projectId) throws Exception {
+    public Project generateFullScreenplay(Integer projectId, Integer userId) throws Exception {
         // Step 1: Get existing project
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found with id: " + projectId));
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("user not found");
+        }
+        if (!user.getCompany().getIsSubscribed() && user.getUseAI() == 0){
+            throw new ApiException("you cannot generate project using AI subscribe");
+        }
 
         // Step 2: Generate characters for the project using CharacterService
         Set<FilmCharacters> characters = characterService.generateCharacters(project, project.getDescription());
@@ -51,6 +60,9 @@ public class AiInteractionService {
         // Step 4: Generate casting recommendations using CastingService
         Set<CastingRecommendation> casting = castingService.generateCasting(project);
         project.setCastingRecommendations(casting);
+
+        user.setUseAI(user.getUseAI()-1);
+        userRepository.save(user);
 
         // Save final project with all relationships
         return projectRepository.save(project);

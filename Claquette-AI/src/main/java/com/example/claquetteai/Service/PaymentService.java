@@ -201,7 +201,7 @@ public class PaymentService {
 
     }
 
-    public String updateAndConfirmPayment(Integer subscriptionId, String transactionId) throws JsonProcessingException {
+    public String updateAndConfirmPayment(Integer subscriptionId, String transactionId, Integer userId) throws JsonProcessingException {
         // 1. Fetch subscription
         CompanySubscription subscription = companySubscriptionRepository.findCompanySubscriptionById(subscriptionId);
         if (subscription == null) {
@@ -213,6 +213,16 @@ public class PaymentService {
         if (payment == null) {
             throw new ApiException("Payment not found for subscription " + subscriptionId);
         }
+
+        User user = userRepository.findUserById(userId);
+        if (user == null){
+            throw new ApiException("user not found");
+        }
+        User user1 = userRepository.findUserByCompany_ActiveSubscription(subscription);
+        if (!user1.equals(user)){
+            throw new ApiException("not authorised");
+        }
+
 
         // 3. Decide which transactionId to use
         String txId = (transactionId != null && !transactionId.isEmpty())
@@ -238,6 +248,7 @@ public class PaymentService {
             payment.setStatus(status);
             if ("paid".equalsIgnoreCase(status)) {
                 payment.setPaymentDate(LocalDateTime.now());
+
             }
             paymentRepository.save(payment);
             if ("paid".equalsIgnoreCase(status)) {

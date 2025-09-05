@@ -56,7 +56,4 @@ public class FilmCharacters {
     @JsonIgnore
     private Project project;
 
-    @ManyToMany(mappedBy = "characters")
-    @JsonIgnore
-    private Set<Scene> scenes;
 }

@@ -41,9 +41,7 @@ public class Scene {
     @Column
     private LocalDateTime updatedAt;
 
-    @ManyToMany
-    @JsonIgnore
-    private Set<FilmCharacters> characters;
+
     @ManyToOne
     @JsonIgnore
     private Episode episode;
