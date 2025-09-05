@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +37,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
 
-    public ResponseEntity<String> processPayment(Payment paymentRequest, Integer subscriptionId) {
+    public ResponseEntity<Map<String, String>> processPayment(Payment paymentRequest, Integer subscriptionId) {
         CompanySubscription companySubscription = companySubscriptionRepository.findCompanySubscriptionById(subscriptionId);
         if (companySubscription == null) {
             throw new ApiException("Subscription not found");
@@ -91,8 +93,12 @@ public class PaymentService {
             paymentRequest.setStatus(jsonResponse.get("status").asText()); // initiated
             paymentRepository.save(paymentRequest);
 
-            // رجّع للـ frontend transaction_url عشان يسوي redirect
-            return ResponseEntity.ok(transactionUrl);
+            // ✅ return both
+            Map<String, String> result = new HashMap<>();
+            result.put("transactionId", transactionId);
+            result.put("transactionUrl", transactionUrl);
+
+            return ResponseEntity.ok(result);
 
         } catch (JsonProcessingException e) {
             throw new ApiException("Error parsing JSON");
