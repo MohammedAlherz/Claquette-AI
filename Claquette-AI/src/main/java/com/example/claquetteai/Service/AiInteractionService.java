@@ -31,7 +31,7 @@ public class AiInteractionService {
         if (user == null) {
             throw new ApiException("user not found");
         }
-        if (!user.getCompany().getIsSubscribed() && user.getUseAI() == 0){
+        if (!user.getCompany().getIsSubscribed() && user.getUseAI() <= 0){
             throw new ApiException("you cannot generate project using AI subscribe");
         }
 

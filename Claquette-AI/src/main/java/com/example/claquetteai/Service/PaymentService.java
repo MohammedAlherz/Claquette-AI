@@ -186,7 +186,6 @@ public class PaymentService {
 
             if (paymentStatus.equalsIgnoreCase("paid")) {
                 companySubscription.setStatus("CONFIRMED");
-                companySubscription.setIsSubscribed(true);
                 companySubscription.setPayment(payment);
                 companySubscriptionRepository.save(companySubscription);
 
@@ -253,7 +252,6 @@ public class PaymentService {
             paymentRepository.save(payment);
             if ("paid".equalsIgnoreCase(status)) {
                 subscription.setStatus("ACTIVE");
-                subscription.setIsSubscribed(true);
                 subscription.setPayment(payment);
                 subscription.setNextBillingDate(LocalDateTime.now().plusDays(30));
                 companySubscriptionRepository.save(subscription);

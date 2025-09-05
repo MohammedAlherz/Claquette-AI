@@ -43,8 +43,6 @@ public class CompanySubscription {
     @Column(columnDefinition = "decimal(10,2)")
     private Double monthlyPrice; // Can be null for FREE plan
 
-    private Boolean isSubscribed = false;
-
 
     @CreationTimestamp
     @Column

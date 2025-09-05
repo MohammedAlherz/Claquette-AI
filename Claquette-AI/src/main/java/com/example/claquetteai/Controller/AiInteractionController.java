@@ -13,9 +13,9 @@ public class AiInteractionController {
 
     private final AiInteractionService aiInteractionService;
 
-    @PostMapping("/{userId}")
+    @PostMapping("/{userId}/project/{projectId}")
     public ResponseEntity<ApiResponse> generateScreenplay(
-            @RequestParam("projectId") Integer projectId, @PathVariable Integer userId) throws Exception {
+            @PathVariable("projectId") Integer projectId, @PathVariable Integer userId) throws Exception {
 
         aiInteractionService.generateFullScreenplay(projectId, userId);
         return ResponseEntity.ok(new ApiResponse("Screenplay generated successfully"));
