@@ -23,7 +23,7 @@ public class PromptBuilderService {
         3. **Characters:** Invent 6–10 Saudi characters with details (traits, arc, backstory, relationships, voice_notes).
         4. **Season Map:** Assign each episode a unique title, short logline, focus characters, and themes.
         5. **Episodes:** Each episode must have 15-25 detailed scenes with action + dialogue.
-        6. **Casting:** Suggest 1–3 Saudi actors for each character (2019+ generation).
+        6. **Casting:** Suggest 1–3 Saudi actors for each character (2022+ generation).
         7. **Production Book:** Suggest realistic Saudi locations, sets, props, wardrobe, music, and risk mitigation.
         8. **Compliance Checklist:** Ensure cultural, legal, and moral compliance.
         
@@ -78,6 +78,9 @@ public class PromptBuilderService {
             }
           ]
         }
+        
+        only first name with out last name
+        make the age of characters logically not all older or all young make it average and teens and young and parents range of ages from 6 to 40 and if some grandfathers make the range of age 50 to 70
 
         story_description: "%s"
         """.formatted(storyDescription);
@@ -192,7 +195,7 @@ public class PromptBuilderService {
           ]
         }
 
-        Suggest 2-3 suitable Saudi actors (born after 1980) for each main character.
+        Suggest 2-3 suitable Saudi actors (born after 1980 and they has new movies or series in saudi arabia tv 2022+) for each main character.
         Include detailed reasoning for each casting choice.
         """.formatted(projectInfo);
     }
