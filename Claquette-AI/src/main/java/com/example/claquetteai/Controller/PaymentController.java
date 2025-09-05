@@ -36,7 +36,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{userId}/payments/confirm/{subscriptionId}/transaction/{transactionId}")
-    public ResponseEntity<String> confirmPayment(@PathVariable Integer subscriptionId, @PathVariable String transactionId, Integer userId) throws JsonProcessingException {
+    public ResponseEntity<String> confirmPayment(@PathVariable Integer subscriptionId, @PathVariable String transactionId,@PathVariable Integer userId) throws JsonProcessingException {
         String result = paymentService.updateAndConfirmPayment(subscriptionId, transactionId, userId);
         return ResponseEntity.ok(result);
     }

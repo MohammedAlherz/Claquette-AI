@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ public class PaymentService {
 
     private final CompanySubscriptionRepository companySubscriptionRepository;
     private final UserRepository userRepository;
-
+    private final PdfMailService pdfMailService;
 
     @Value("${moyasar.api.key}")
     private String apiKey;
@@ -215,14 +216,13 @@ public class PaymentService {
         }
 
         User user = userRepository.findUserById(userId);
-        if (user == null){
+        if (user == null) {
             throw new ApiException("user not found");
         }
         User user1 = userRepository.findUserByCompany_ActiveSubscription(subscription);
-        if (!user1.equals(user)){
+        if (!user1.equals(user)) {
             throw new ApiException("not authorised");
         }
-
 
         // 3. Decide which transactionId to use
         String txId = (transactionId != null && !transactionId.isEmpty())
@@ -248,9 +248,9 @@ public class PaymentService {
             payment.setStatus(status);
             if ("paid".equalsIgnoreCase(status)) {
                 payment.setPaymentDate(LocalDateTime.now());
-
             }
             paymentRepository.save(payment);
+
             if ("paid".equalsIgnoreCase(status)) {
                 subscription.setStatus("ACTIVE");
                 subscription.setIsSubscribed(true);
@@ -260,38 +260,25 @@ public class PaymentService {
 
                 subscription.getCompany().setIsSubscribed(true);
                 userRepository.save(subscription.getCompany().getUser());
-                //TODO
-                userRepository.findUserByCompany_ActiveSubscription(subscription).getEmail();
+
+                // Get user for invoice - use the authenticated user
+                User invoiceUser = userRepository.findUserByCompany_ActiveSubscription(subscription);
+                System.out.println("Sending invoice to: " + invoiceUser.getEmail());
+
+                // Send invoice email with PDF attachment
+                try {
+                    pdfMailService.generateAndSendInvoice(subscription, payment, invoiceUser);
+                    System.out.println("Invoice email sent successfully to: " + invoiceUser.getEmail());
+                } catch (Exception emailException) {
+                    System.err.println("Failed to send invoice email: " + emailException.getMessage());
+                    // Log the error but don't fail the payment process
+                    emailException.printStackTrace();
+                }
             }
             return response.getBody();
         } else {
             String errorMessage = json.has("message") ? json.get("message").asText() : "Unknown error";
             throw new ApiException("Moyasar error: " + errorMessage);
         }
-//            // 5. Update payment
-//            payment.setStatus(status);
-//            if ("paid".equalsIgnoreCase(status)) {
-//                payment.setPaymentDate(LocalDateTime.now());
-//            }
-//            paymentRepository.save(payment);
-//
-//            // 6. If paid → update subscription + company
-//            if ("paid".equalsIgnoreCase(status)) {
-//                subscription.setStatus("CONFIRMED");
-//                subscription.setIsSubscribed(true);
-//                subscription.setPayment(payment);
-//                subscription.setNextBillingDate(LocalDateTime.now().plusDays(30));
-//                companySubscriptionRepository.save(subscription);
-//
-//                subscription.getCompany().setIsSubscribed(true);
-//                userRepository.save(subscription.getCompany().getUser());
-//            }
-//
-//            // 7. Return raw response (you could also return status only if you prefer)
-//            return response.getBody();
-//
-//        } catch (Exception e) {
-//            throw new ApiException("Failed to parse Moyasar response");
-//        }
-        }
     }
+}
