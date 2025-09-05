@@ -75,6 +75,10 @@ public class Project {
     @Column(columnDefinition = "datetime not null")
     private LocalDateTime endProjectDate;
 
+    @NotNull(message = "episode count is required")
+    @Column(columnDefinition = "int not null")
+    private Integer episodeCount;
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt;
