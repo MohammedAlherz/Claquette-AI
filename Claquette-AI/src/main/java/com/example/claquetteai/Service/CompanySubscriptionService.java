@@ -30,7 +30,7 @@ public class CompanySubscriptionService {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
 
-    private static final Double ADVANCED_PRICE = 99.99;
+    private static final Double ADVANCED_PRICE = 1999.99;
 
     // Existing methods remain the same...
     public List<CompanySubscriptionDTOOUT> getAllSubscriptions() {

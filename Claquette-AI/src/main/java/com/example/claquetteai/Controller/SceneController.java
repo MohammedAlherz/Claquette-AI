@@ -18,7 +18,7 @@ public class SceneController {
 
     @GetMapping("/{userId}/project/{projectId}")
     public ResponseEntity<List<SceneDTOOUT>> scenes(@PathVariable Integer userId, @PathVariable Integer projectId){
-        return ResponseEntity.ok(sceneService.scenes(userId, projectId));
+        return ResponseEntity.ok(sceneService.getScenes(userId, projectId));
     }
 
     @GetMapping("/{userId}/project/{projectId}/characters-count")

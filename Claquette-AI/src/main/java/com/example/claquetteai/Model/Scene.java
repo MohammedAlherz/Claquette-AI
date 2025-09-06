@@ -41,12 +41,21 @@ public class Scene {
     @Column
     private LocalDateTime updatedAt;
 
-
     @ManyToOne
     @JsonIgnore
     private Episode episode;
 
+    // CRITICAL FIX: Add proper cascade and fetch configuration
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "scene_characters",
+            joinColumns = @JoinColumn(name = "scenes_id"), // This should match your actual column name
+            inverseJoinColumns = @JoinColumn(name = "characters_id") // This should match your actual column name
+    )
+    @JsonIgnore
+    private Set<FilmCharacters> characters;
+
     @ManyToOne
     @JsonIgnore
-    private Film film;  // Add this field
+    private Film film;
 }

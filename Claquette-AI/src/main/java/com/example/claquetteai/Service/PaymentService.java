@@ -105,47 +105,6 @@ public class PaymentService {
             throw new ApiException("Error parsing JSON");
         }
 
-//        if (response.getStatusCode().is2xxSuccessful()) {
-//            CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
-//            if (subscription == null) {
-//                throw new ApiException("Subscription not found with id " + subscriptionId);
-//            }
-//
-//            subscriptionService.updateSubscriptionStatus(subscription.getId(), "ACTIVE");
-//
-//            Payment payment = new Payment();
-//            payment.setId(subscription.getId());
-//            payment.setName(paymentRequest.getName());
-//            payment.setNumber(paymentRequest.getNumber());
-//            payment.setCvc(paymentRequest.getCvc());
-//            payment.setMonth(paymentRequest.getMonth());
-//            payment.setYear(paymentRequest.getYear());
-//            payment.setAmount(paymentRequest.getAmount());
-//            payment.setCurrency(paymentRequest.getCurrency());
-//            payment.setDescription(paymentRequest.getDescription());
-//            payment.setCallbackUrl(callbackUrl);
-//            payment.setCompanySubscription(subscription);
-//
-//            paymentRepository.save(payment);
-//
-//            return new PaymentDTOOUT(
-//                    payment.getId(),
-//                    payment.getAmount(),
-//                    payment.getCurrency(),
-//                    payment.getDescription(),
-//                    "SUCCESS",
-//                    "https://redirect.url/success"
-//            );
-//        }
-//
-//        return new PaymentDTOOUT(
-//                null,
-//                paymentRequest.getAmount(),
-//                paymentRequest.getCurrency(),
-//                paymentRequest.getDescription(),
-//                "FAILED",
-//                null
-//        );
     }
 
 

@@ -30,15 +30,15 @@ public class CompanyController {
         ));
     }
 
-    @PostMapping("/verify")
-    public ResponseEntity<?> verify(@RequestParam String email, @RequestParam String code) {
-        companyService.verifyUserEmail(email, code);
+    @PostMapping("/verify/{userId}")
+    public ResponseEntity<?> verify(@PathVariable Integer userId, @RequestParam("code") String code) {
+        companyService.verifyUserEmail(userId, code);
         return ResponseEntity.ok().body(new ApiResponse("✅ Email verified successfully!"));
     }
 
-    @PostMapping("/resend")
-    public ResponseEntity<?> resend(@RequestParam String email) {
-        companyService.resendVerificationCode(email);
+    @PostMapping("/resend/{userId}")
+    public ResponseEntity<?> resend(@PathVariable Integer userId) {
+        companyService.resendVerificationCode(userId);
         return ResponseEntity.ok().body(new ApiResponse("✅ New verification code sent to your email."));
     }
 

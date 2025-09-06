@@ -47,7 +47,7 @@ public class CompanyService {
         user.setPassword(dto.getPassword());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        user.setEnabled(false); // not verified yet
+        user.setActiveAccount(false); // not verified yet
 
         User savedUser = userRepository.save(user);
 
@@ -67,69 +67,38 @@ public class CompanyService {
     }
 
     @Transactional
-    public void verifyUserEmail(String email, String code) {
-        if (!verificationService.verifyCode(email, code)) {
+    public void verifyUserEmail(Integer userId, String code) {
+        User user = userRepository.findUserById(userId);
+        if (!verificationService.verifyCode(userId, code)) {
             throw new ApiException("❌ Invalid or expired verification code");
         }
 
-        User user = userRepository.findUserByEmail(email);
         if (user == null) throw new ApiException("User not found");
 
-        if (user.isEnabled()) {
+        if (user.isActiveAccount()) {
             throw new ApiException("User already verified");
         }
 
-        user.setEnabled(true);
+        user.setActiveAccount(true);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 
 
     @Transactional
-    public void resendVerificationCode(String email) {
-        User user = userRepository.findUserByEmail(email);
+    public void resendVerificationCode(Integer userId) {
+        User user = userRepository.findUserById(userId);
         if (user == null) {
-            throw new ApiException("User not found with email: " + email);
+            throw new ApiException("User not found");
         }
-        if (user.isEnabled()) {
+        if (user.isActiveAccount()) {
             throw new ApiException("User already verified");
         }
 
-        String code = verificationService.generateCode(email);
+        String code = verificationService.generateCode(user.getEmail());
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
 
-
-
-
-
-
-
-
-
-
-//    public void addCompany(CompanyDTOIN dto) {
-//        // Create User
-//        User user = new User();
-//        user.setFullName(dto.getFullName());
-//        user.setEmail(dto.getEmail());
-//        user.setPassword(dto.getPassword()); // You should hash the password here
-//        user.setCreatedAt(LocalDateTime.now());
-//        user.setUpdatedAt(LocalDateTime.now());
-//
-//        User savedUser = userRepository.save(user);
-//
-//        // Create Company
-//        Company company = new Company();
-//        // Don't set ID manually - @MapsId will handle it
-//        company.setName(dto.getName());
-//        company.setCommercialRegNo(dto.getCommercialRegNo());
-//        company.setUser(savedUser);
-//        company.setCreatedAt(LocalDateTime.now());
-//        company.setUpdatedAt(LocalDateTime.now());
-//
-//        companyRepository.save(company);
-//    }
 
     public void updateCompany(Integer id, CompanyDTOIN dto) {
         Company company = companyRepository.findById(id)

@@ -54,7 +54,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Column(nullable = false)
-    private boolean enabled = false;
+    private boolean activeAccount = false;
 
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)

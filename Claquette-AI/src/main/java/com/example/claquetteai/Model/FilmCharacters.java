@@ -1,6 +1,5 @@
 package com.example.claquetteai.Model;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -52,8 +51,12 @@ public class FilmCharacters {
     @Column
     private LocalDateTime updatedAt;
 
+    // CRITICAL FIX: Specify the mappedBy correctly and add cascade
+    @ManyToMany(mappedBy = "characters", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<Scene> scenes;
+
     @ManyToOne
     @JsonIgnore
     private Project project;
-
 }

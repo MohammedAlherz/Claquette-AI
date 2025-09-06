@@ -19,11 +19,6 @@ public class CharacterService {
     private final PromptBuilderService promptBuilderService;
     private final AiClientService aiClientService;
 
-    // Regular CRUD operations
-    public FilmCharacters createCharacter(FilmCharacters character) {
-        return characterRepository.save(character);
-    }
-
     // AI Generation method
     public Set<FilmCharacters> generateCharacters(Project project, String storyDescription) throws Exception {
         // Build character generation prompt

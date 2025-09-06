@@ -50,10 +50,10 @@ public class Project {
     @Column(columnDefinition = "double")
     private Double budget;
 
-    @ElementCollection
-    @CollectionTable(name = "project_locations", joinColumns = @JoinColumn(name = "project_id"))
-    @Column(name = "location")
-    private List<String> location;
+    @NotEmpty(message = "Location cannot be null")
+    @Size(min = 3, max = 20, message = "location should be between 3 and 20 characters")
+    @Column(columnDefinition = "varchar(20) not null")
+    private String location;
 
     @Size(max = 100, message = "Target audience should not exceed 100 characters")
     @Column(columnDefinition = "varchar(100)")
@@ -109,10 +109,6 @@ public class Project {
     @JsonIgnore
     private Set<FilmCharacters> characters;
 
-    @OneToOne(mappedBy = "project", cascade = CascadeType.ALL)
-    @PrimaryKeyJoinColumn
-    @JsonIgnore
-    private AiInteraction aiInteractions;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private Set<CastingRecommendation> castingRecommendations;

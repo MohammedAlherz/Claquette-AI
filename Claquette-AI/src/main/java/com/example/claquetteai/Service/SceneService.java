@@ -3,14 +3,8 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.SceneDTOIN;
 import com.example.claquetteai.DTO.SceneDTOOUT;
-import com.example.claquetteai.Model.Episode;
-import com.example.claquetteai.Model.Project;
-import com.example.claquetteai.Model.Scene;
-import com.example.claquetteai.Model.User;
-import com.example.claquetteai.Repository.EpisodeRepository;
-import com.example.claquetteai.Repository.ProjectRepository;
-import com.example.claquetteai.Repository.SceneRepository;
-import com.example.claquetteai.Repository.UserRepository;
+import com.example.claquetteai.Model.*;
+import com.example.claquetteai.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +18,9 @@ public class SceneService {
     private final EpisodeRepository episodeRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-
-    public List<SceneDTOOUT> scenes(Integer userId, Integer projectId){
+    private final FilmRepository filmRepository;
+    private final CharacterRepository characterRepository;
+    public List<SceneDTOOUT> getScenes(Integer userId, Integer projectId){
         Project project = projectRepository.findProjectById(projectId);
         if (project == null){
             throw new ApiException("project not found");
@@ -37,9 +32,16 @@ public class SceneService {
         if (!project.getCompany().getUser().equals(user)){
             throw new ApiException("not authorised");
         }
-        Episode episode = episodeRepository.findEpisodeByProject(project);
-        if (episode == null){
-            throw new ApiException("episode not found");
+        if(project.getProjectType().equals("FILM")){
+            Film film = filmRepository.findFilmByProject(project);
+            if(film == null){
+                throw new ApiException("Film not found");
+            }
+        }else{
+            Episode episode = episodeRepository.findEpisodeByProject(project);
+            if (episode == null){
+                throw new ApiException("episode not found");
+            }
         }
         List<Scene> scenes = sceneRepository.findSceneByFilm_Project(project);
         List<SceneDTOOUT> sceneDTOOUTS = new ArrayList<>();
@@ -51,7 +53,19 @@ public class SceneService {
     }
 
     public Integer characterScene(Integer userId, Integer projectId){
-        return scenes(userId,projectId).size();
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null){
+            throw new ApiException("project not found");
+        }
+        User user = userRepository.findUserById(userId);
+        if (user == null){
+            throw new ApiException("user not found");
+        }
+        if (!project.getCompany().getUser().equals(user)){
+            throw new ApiException("not authorised");
+        }
+        List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
+        return characters.size();
     }
 
     public void updateScene(Integer userId, Integer projectId, Integer sceneId, SceneDTOIN sceneDTOIN){
@@ -74,4 +88,6 @@ public class SceneService {
         oldScene.setDialogue(sceneDTOIN.getDialogue());
         sceneRepository.save(oldScene);
     }
+
+
 }

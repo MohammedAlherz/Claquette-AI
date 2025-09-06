@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class JsonExtractor {
@@ -39,10 +41,6 @@ public class JsonExtractor {
         int episodesCount = projectNode.path("episodes_count").asInt(1);
         project.setProjectType(episodesCount == 1 ? "FILM" : "SERIES");
 
-        // Don't set defaults - use only what user provides
-        // Status is set in ProjectService.addProject()
-        // Budget, dates come from user input
-
         // Extract optional fields from AI response
         if (projectNode.has("genre")) {
             project.setGenre(projectNode.path("genre").asText());
@@ -50,17 +48,6 @@ public class JsonExtractor {
 
         if (projectNode.has("target_audience")) {
             project.setTargetAudience(projectNode.path("target_audience").asText());
-        }
-
-        // Handle location - use mutable ArrayList
-        if (projectNode.has("city")) {
-            List<String> locations = new ArrayList<>();
-            locations.add(projectNode.path("city").asText());
-            project.setLocation(locations);
-        } else if (projectNode.has("country")) {
-            List<String> locations = new ArrayList<>();
-            locations.add(projectNode.path("country").asText());
-            project.setLocation(locations);
         }
 
         // Handle assumptions - append to description if present
@@ -76,7 +63,7 @@ public class JsonExtractor {
 
     /**
      * Extracts Film with scenes from AI JSON response
-     * Creates Film entity with scenes directly attached
+     * Creates Film entity with scenes and character associations
      */
     public Film extractFilmWithScenes(String json, Project project) throws Exception {
         JsonNode root = mapper.readTree(json);
@@ -100,17 +87,20 @@ public class JsonExtractor {
             film.setDurationMinutes(filmNode.path("duration_minutes").asInt());
         }
 
-        // Extract scenes for this film
-        Set<Scene> scenes = extractScenesForFilm(filmNode, film);
+        // Create character map for linking scenes to characters
+        Map<String, FilmCharacters> characterMap = createCharacterMapFromProject(project);
+
+        // Extract scenes for this film with character associations
+        Set<Scene> scenes = extractScenesForFilm(filmNode, film, characterMap);
         film.setScenes(scenes);
 
         return film;
     }
 
     /**
-     * Extracts scenes for film (similar to episodes but links to film)
+     * ENHANCED: Extracts scenes for film with improved dialogue structure
      */
-    private Set<Scene> extractScenesForFilm(JsonNode filmNode, Film film) {
+    private Set<Scene> extractScenesForFilm(JsonNode filmNode, Film film, Map<String, FilmCharacters> characterMap) {
         Set<Scene> scenes = new HashSet<>();
         int sceneCounter = 1;
 
@@ -120,23 +110,14 @@ public class JsonExtractor {
             scene.setSceneNumber(sceneCounter++);
             scene.setSetting(sceneNode.path("slug").asText());
             scene.setActions(sceneNode.path("action").asText());
-            scene.setFilm(film); // Link to film instead of episode
+            scene.setFilm(film);
 
-            // Same dialogue and notes extraction as before...
-            StringBuilder dialogueBuilder = new StringBuilder();
-            for (JsonNode dialogueNode : sceneNode.path("dialogue")) {
-                String character = dialogueNode.path("character").asText();
-                String line = dialogueNode.path("line").asText();
-                String aside = dialogueNode.has("aside") ?
-                        " (" + dialogueNode.path("aside").asText() + ")" : "";
+            // ENHANCED: Extract dialogue with proper character separation
+            Set<FilmCharacters> sceneCharacters = new HashSet<>();
+            String formattedDialogue = extractAndFormatDialogue(sceneNode, characterMap, sceneCharacters);
 
-                dialogueBuilder.append(character)
-                        .append(": ")
-                        .append(line)
-                        .append(aside)
-                        .append("\n");
-            }
-            scene.setDialogue(dialogueBuilder.toString().trim());
+            scene.setDialogue(formattedDialogue);
+            scene.setCharacters(sceneCharacters);
 
             // Technical notes
             StringBuilder notes = new StringBuilder();
@@ -162,7 +143,6 @@ public class JsonExtractor {
 
     /**
      * Extracts single episode with scenes from AI JSON response
-     * Creates Episode entity with associated Scene entities
      */
     public Episode extractEpisodeWithScenes(String json, Project project, int episodeNumber) throws Exception {
         JsonNode root = mapper.readTree(json);
@@ -198,8 +178,11 @@ public class JsonExtractor {
             episode.setDurationMinutes(episodeNode.path("duration_minutes").asInt());
         }
 
-        // Extract scenes for this episode
-        Set<Scene> scenes = extractScenesFromNode(episodeNode, episode);
+        // Create character map for linking scenes to characters
+        Map<String, FilmCharacters> characterMap = createCharacterMapFromProject(project);
+
+        // Extract scenes for this episode with character associations
+        Set<Scene> scenes = extractScenesFromNode(episodeNode, episode, characterMap);
         episode.setScenes(scenes);
 
         return episode;
@@ -207,11 +190,13 @@ public class JsonExtractor {
 
     /**
      * Extracts episodes and their scenes from AI JSON response (legacy method)
-     * Creates Episode entities with associated Scene entities
      */
     public Set<Episode> extractEpisodes(String json, Project project) throws Exception {
         JsonNode root = mapper.readTree(json);
         Set<Episode> episodes = new HashSet<>();
+
+        // Create character map for linking scenes to characters
+        Map<String, FilmCharacters> characterMap = createCharacterMapFromProject(project);
 
         // Process each episode in the JSON
         for (JsonNode epNode : root.path("episodes")) {
@@ -234,8 +219,8 @@ public class JsonExtractor {
                 episode.setDurationMinutes(epNode.path("duration_minutes").asInt());
             }
 
-            // Extract scenes for this episode
-            Set<Scene> scenes = extractScenesFromNode(epNode, episode);
+            // Extract scenes for this episode with character associations
+            Set<Scene> scenes = extractScenesFromNode(epNode, episode, characterMap);
             episode.setScenes(scenes);
 
             episodes.add(episode);
@@ -245,10 +230,9 @@ public class JsonExtractor {
     }
 
     /**
-     * Extracts scenes from a JSON node (episode or film)
-     * Creates Scene entities with dialogue and technical notes
+     * ENHANCED: Extracts scenes from a JSON node with improved dialogue structure
      */
-    private Set<Scene> extractScenesFromNode(JsonNode parentNode, Episode episode) {
+    private Set<Scene> extractScenesFromNode(JsonNode parentNode, Episode episode, Map<String, FilmCharacters> characterMap) {
         Set<Scene> scenes = new HashSet<>();
         int sceneCounter = 1;
 
@@ -259,23 +243,14 @@ public class JsonExtractor {
             scene.setSceneNumber(sceneCounter++);
             scene.setSetting(sceneNode.path("slug").asText());
             scene.setActions(sceneNode.path("action").asText());
-            scene.setEpisode(episode); // Link to episode
+            scene.setEpisode(episode);
 
-            // Convert dialogue array to formatted string
-            StringBuilder dialogueBuilder = new StringBuilder();
-            for (JsonNode dialogueNode : sceneNode.path("dialogue")) {
-                String character = dialogueNode.path("character").asText();
-                String line = dialogueNode.path("line").asText();
-                String aside = dialogueNode.has("aside") ?
-                        " (" + dialogueNode.path("aside").asText() + ")" : "";
+            // ENHANCED: Extract dialogue with proper character separation
+            Set<FilmCharacters> sceneCharacters = new HashSet<>();
+            String formattedDialogue = extractAndFormatDialogue(sceneNode, characterMap, sceneCharacters);
 
-                dialogueBuilder.append(character)
-                        .append(": ")
-                        .append(line)
-                        .append(aside)
-                        .append("\n");
-            }
-            scene.setDialogue(dialogueBuilder.toString().trim());
+            scene.setDialogue(formattedDialogue);
+            scene.setCharacters(sceneCharacters);
 
             // Combine technical notes into department notes
             StringBuilder notes = new StringBuilder();
@@ -304,8 +279,95 @@ public class JsonExtractor {
     }
 
     /**
+     * NEW METHOD: Extracts and formats dialogue with proper character separation
+     * This method creates a clean, structured dialogue format
+     */
+    private String extractAndFormatDialogue(JsonNode sceneNode, Map<String, FilmCharacters> characterMap, Set<FilmCharacters> sceneCharacters) {
+        StringBuilder dialogueBuilder = new StringBuilder();
+
+        for (JsonNode dialogueNode : sceneNode.path("dialogue")) {
+            String characterName = dialogueNode.path("character").asText();
+            String line = dialogueNode.path("line").asText();
+
+            // Handle stage directions/asides
+            String aside = "";
+            if (dialogueNode.has("aside") && !dialogueNode.path("aside").asText().trim().isEmpty()) {
+                aside = " (" + dialogueNode.path("aside").asText() + ")";
+            }
+
+            // Format the dialogue line properly
+            dialogueBuilder.append(characterName)
+                    .append(": ")
+                    .append(line)
+                    .append(aside)
+                    .append("\n");
+
+            // Associate character with scene if character exists
+            FilmCharacters character = findCharacterByName(characterName, characterMap);
+            if (character != null) {
+                sceneCharacters.add(character);
+                // Maintain both sides of the many-to-many relationship
+                if (character.getScenes() == null) {
+                    character.setScenes(new HashSet<>());
+                }
+            }
+        }
+        System.out.println("Dialogue Builder"+dialogueBuilder.toString());
+
+        return dialogueBuilder.toString().trim();
+    }
+
+    /**
+     * Creates character map from project's already-saved characters
+     */
+    private Map<String, FilmCharacters> createCharacterMapFromProject(Project project) {
+        Map<String, FilmCharacters> characterMap = new HashMap<>();
+        if (project.getCharacters() != null) {
+            for (FilmCharacters character : project.getCharacters()) {
+                if (character.getName() != null) {
+                    // Store with exact name and normalized name for flexible matching
+                    characterMap.put(character.getName(), character);
+                    characterMap.put(character.getName().toLowerCase().trim(), character);
+                }
+            }
+        }
+        return characterMap;
+    }
+
+    /**
+     * Finds a character by name using flexible matching
+     */
+    private FilmCharacters findCharacterByName(String characterName, Map<String, FilmCharacters> characterMap) {
+        if (characterName == null || characterName.trim().isEmpty()) {
+            return null;
+        }
+
+        // Try exact match first
+        FilmCharacters character = characterMap.get(characterName);
+        if (character != null) {
+            return character;
+        }
+
+        // Try normalized match
+        character = characterMap.get(characterName.toLowerCase().trim());
+        if (character != null) {
+            return character;
+        }
+
+        // Try partial matching for cases where dialogue uses shortened names
+        String normalizedSearch = characterName.toLowerCase().trim();
+        for (Map.Entry<String, FilmCharacters> entry : characterMap.entrySet()) {
+            String mapKey = entry.getKey().toLowerCase().trim();
+            if (mapKey.contains(normalizedSearch) || normalizedSearch.contains(mapKey)) {
+                return entry.getValue();
+            }
+        }
+
+        return null; // Character not found
+    }
+
+    /**
      * Fixes problematic assumptions formatting in JSON
-     * Converts invalid object format to valid array format
      */
     private String fixAssumptionsFormat(String json) {
         // Simple regex replacement for assumptions object
@@ -318,7 +380,6 @@ public class JsonExtractor {
 
     /**
      * Extracts assumptions from JsonNode (handles array, object, or string)
-     * Returns list of assumption strings
      */
     private List<String> extractAssumptions(JsonNode assumptionsNode) {
         List<String> assumptions = new ArrayList<>();
@@ -343,7 +404,6 @@ public class JsonExtractor {
 
     /**
      * Extracts character information from AI JSON response
-     * Creates FilmCharacters entities with detailed backgrounds
      */
     public Set<FilmCharacters> extractCharacters(JsonNode root, Project project) {
         Set<FilmCharacters> characters = new HashSet<>();
@@ -414,7 +474,6 @@ public class JsonExtractor {
 
     /**
      * Extracts casting recommendations from AI JSON response
-     * Creates CastingRecommendation entities for each character-actor pairing
      */
     public Set<CastingRecommendation> extractCasting(String json, Project project) throws Exception {
         JsonNode root = mapper.readTree(json);
@@ -426,9 +485,6 @@ public class JsonExtractor {
 
             // Process each actor suggestion for this character
             for (JsonNode suggestionNode : castNode.path("suggestions")) {
-                // Debug output to track processing
-                System.out.println("Processing casting for character: " + characterName);
-
                 CastingRecommendation recommendation = new CastingRecommendation();
 
                 // Set casting recommendation details
