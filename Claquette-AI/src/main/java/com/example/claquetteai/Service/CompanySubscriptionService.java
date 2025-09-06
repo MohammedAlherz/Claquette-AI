@@ -3,16 +3,21 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.CompanySubscriptionDTOIN;
 import com.example.claquetteai.DTO.CompanySubscriptionDTOOUT;
+import com.example.claquetteai.DTO.HistorySubscription;
 import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.CompanySubscription;
+import com.example.claquetteai.Model.Payment;
+import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
 import com.example.claquetteai.Repository.CompanySubscriptionRepository;
 import com.example.claquetteai.Repository.PaymentRepository;
+import com.example.claquetteai.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +28,7 @@ public class CompanySubscriptionService {
     private final CompanySubscriptionRepository subscriptionRepository;
     private final CompanyRepository companyRepository;
     private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
 
     private static final Double ADVANCED_PRICE = 99.99;
 
@@ -40,7 +46,7 @@ public class CompanySubscriptionService {
             throw new ApiException("Company not found with id " + companyId);
         }
 
-        if (company.getActiveSubscription() != null) {
+        if (company.getActiveSubscription().getStatus().equalsIgnoreCase("active")) {
             throw new ApiException("Company already has an active subscription");
         }
 
@@ -118,5 +124,27 @@ public class CompanySubscriptionService {
                 subscription.getNextBillingDate(),
                 subscription.getMonthlyPrice()
         );
+    }
+
+
+    public List<HistorySubscription> historyOfSubscription(Integer userId){
+        User user = userRepository.findUserById(userId);
+        if (user == null){
+            throw new ApiException("user not found");
+        }
+        List<CompanySubscription> companySubscriptions = subscriptionRepository.findCompanySubscriptionsByCompany_User(user);
+        List<HistorySubscription> historySubscriptions = new ArrayList<>();
+        for (CompanySubscription c : companySubscriptions){
+            Payment payment = paymentRepository.findPaymentByCompanySubscription(c);
+            if (payment == null){
+                throw new ApiException("payment not found");
+            }
+            HistorySubscription h = new HistorySubscription();
+            h.setPrice(c.getMonthlyPrice());
+            h.setPaidAt(c.getStartDate());
+            h.setIsPaid(payment.getStatus());
+            historySubscriptions.add(h);
+        }
+        return historySubscriptions;
     }
 }

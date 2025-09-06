@@ -5,13 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
+import java.time.LocalDateTime;
+
 @Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CastingRecommendationDTOOUT {
-    private String name;
-    private Integer age;
-    private Double matchScore;
-    private String profile;
+public class HistorySubscription {
+    private Double price;
+    private LocalDateTime paidAt;
+    private String isPaid;
 }

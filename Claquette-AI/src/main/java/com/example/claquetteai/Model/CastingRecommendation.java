@@ -40,6 +40,9 @@ public class CastingRecommendation {
     @Column(columnDefinition = "decimal(3,2)")
     private Double matchScore; // How well the actor matches the character (0-1)
 
+    @Column(columnDefinition = "int not null")
+    private Integer age;
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt;

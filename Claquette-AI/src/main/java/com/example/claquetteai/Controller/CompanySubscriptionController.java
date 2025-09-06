@@ -2,11 +2,14 @@ package com.example.claquetteai.Controller;
 
 import com.example.claquetteai.Api.ApiResponse;
 import com.example.claquetteai.DTO.CompanySubscriptionDTOIN;
+import com.example.claquetteai.DTO.HistorySubscription;
 import com.example.claquetteai.Service.CompanySubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/subscription")
@@ -38,5 +41,11 @@ public class CompanySubscriptionController {
     public ResponseEntity<?> deleteSubscription(@PathVariable Integer id) {
         subscriptionService.deleteSubscription(id);
         return ResponseEntity.ok(new ApiResponse("Subscription has been deleted successfully"));
+    }
+
+
+    @GetMapping("/{userId}/history-payment")
+    public ResponseEntity<List<HistorySubscription>> historySubscriptions(@PathVariable Integer userId){
+        return ResponseEntity.ok(subscriptionService.historyOfSubscription(userId));
     }
 }
