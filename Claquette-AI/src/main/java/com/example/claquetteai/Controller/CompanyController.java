@@ -24,9 +24,24 @@ public class CompanyController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody @Valid CompanyDTOIN dto) {
-        companyService.addCompany(dto);
-        return ResponseEntity.ok().body(new ApiResponse("Company registered successfully"));
+        companyService.registerCompanyWithVerification(dto);
+        return ResponseEntity.ok().body(new ApiResponse(
+                "✅ Company registered successfully. Please check your email to verify your account."
+        ));
     }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verify(@RequestParam String email, @RequestParam String code) {
+        companyService.verifyUserEmail(email, code);
+        return ResponseEntity.ok().body(new ApiResponse("✅ Email verified successfully!"));
+    }
+
+    @PostMapping("/resend")
+    public ResponseEntity<?> resend(@RequestParam String email) {
+        companyService.resendVerificationCode(email);
+        return ResponseEntity.ok().body(new ApiResponse("✅ New verification code sent to your email."));
+    }
+
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateCompany(@PathVariable Integer id,

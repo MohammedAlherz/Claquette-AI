@@ -53,6 +53,10 @@ public class User {
     @Column
     private LocalDateTime updatedAt;
 
+    @Column(nullable = false)
+    private boolean enabled = false;
+
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
     @JsonIgnore

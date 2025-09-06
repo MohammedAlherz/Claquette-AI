@@ -10,4 +10,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     User findUserById(Integer id);
 
     User findUserByCompany_ActiveSubscription(CompanySubscription companyActiveSubscription);
+    User findUserByEmail(String email);
 }
