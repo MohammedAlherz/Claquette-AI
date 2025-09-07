@@ -3,6 +3,7 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.DTO.CompanyDTOOUT;
+import com.example.claquetteai.DTO.WatheqValidationResponse;
 import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
@@ -32,6 +33,7 @@ public class CompanyService {
     private final  VerificationEmailService emailService;
     private final  PasswordResetService passwordResetService;
     private final JwtUtil  jwtUtil;
+    private final WatheqService watheqService;
 
 
 
@@ -85,28 +87,33 @@ public class CompanyService {
 
     @Transactional
     public void registerCompanyWithVerification(CompanyDTOIN dto) {
-        // Create User
+        // ✅ Validate CR
+        WatheqValidationResponse watheqResponse = watheqService.validateCommercialRegNo(dto.getCommercialRegNo());
+        if (!watheqResponse.isValid() || !watheqResponse.isActive()) {
+            throw new ApiException("Invalid or inactive commercial registration");
+        }
+
+        // ✅ Create User with hashed password
         User user = new User();
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(dto.getPassword()); // HASHED
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        user.setActiveAccount(false); // not verified yet
+        user.setActiveAccount(false);
 
         User savedUser = userRepository.save(user);
 
-        // Create Company
+        // ✅ Create Company
         Company company = new Company();
         company.setName(dto.getName());
         company.setCommercialRegNo(dto.getCommercialRegNo());
         company.setUser(savedUser);
         company.setCreatedAt(LocalDateTime.now());
         company.setUpdatedAt(LocalDateTime.now());
-
         companyRepository.save(company);
 
-        // 🔑 Generate and send code
+        // ✅ Send email
         String code = verificationService.generateCode(user.getEmail());
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
