@@ -28,14 +28,14 @@ public class ProjectController {
 
     @PostMapping("/add/company/{companyId}")
     public ResponseEntity<?> addProject(@RequestBody @Valid Project project,
-                                                  @PathVariable Integer companyId) {
+                                        @PathVariable Integer companyId) {
         projectService.addProject(project, companyId);
         return ResponseEntity.ok().body(new ApiResponse("Project has been added successfully"));
     }
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateProject(@PathVariable Integer id,
-                                                     @RequestBody @Valid Project updatedProject) {
+                                           @RequestBody @Valid Project updatedProject) {
         projectService.updateProject(id, updatedProject);
         return ResponseEntity.ok().body(new ApiResponse("Project has been updated successfully"));
     }
@@ -48,22 +48,22 @@ public class ProjectController {
 
 
     @GetMapping("/{userId}/my-projects")
-    public ResponseEntity<?> myProjects(@PathVariable Integer userId){
+    public ResponseEntity<?> myProjects(@PathVariable Integer userId) {
         return ResponseEntity.ok(projectService.getProjectById(userId));
     }
 
     @GetMapping("/{userId}/project-count")
-    public ResponseEntity<?> projectsCount(@PathVariable Integer userId){
+    public ResponseEntity<?> projectsCount(@PathVariable Integer userId) {
         return ResponseEntity.ok(projectService.projectsCount(userId).toString());
     }
 
     @GetMapping("/{userId}/total-budget")
-    public ResponseEntity<?> totalBudget(@PathVariable Integer userId){
+    public ResponseEntity<?> totalBudget(@PathVariable Integer userId) {
         return ResponseEntity.ok(projectService.getTotalBudget(userId).toString());
     }
 
     @GetMapping("/{userId}/project-characters")
-    public ResponseEntity<?> projectCharacters(@PathVariable Integer userId, @PathVariable Integer projectId){
+    public ResponseEntity<?> projectCharacters(@PathVariable Integer userId, @PathVariable Integer projectId) {
         return ResponseEntity.ok(projectService.projectCharacters(userId, projectId));
     }
 
@@ -74,13 +74,13 @@ public class ProjectController {
     }
 
     @GetMapping(value = "/{userId}/project/{projectId}/poster.png", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<?> getPosterPng(@PathVariable Integer userId,@PathVariable Integer projectId) {
+    public ResponseEntity<?> getPosterPng(@PathVariable Integer userId, @PathVariable Integer projectId) {
         return projectService.getPosterPngResponse(userId, projectId);
     }
 
     @PutMapping("/{userId}/project/{projectId}/poster")
-    public ResponseEntity<?> uploadPoster(@PathVariable Integer userId,@PathVariable Integer projectId, @RequestParam("file") MultipartFile file) {
-        projectService.uploadPoster(userId,projectId, file);
+    public ResponseEntity<?> uploadPoster(@PathVariable Integer userId, @PathVariable Integer projectId, @RequestParam("file") MultipartFile file) {
+        projectService.uploadPoster(userId, projectId, file);
         return ResponseEntity.ok(new ApiResponse("poster uploaded successfully"));
     }
 
@@ -94,5 +94,15 @@ public class ProjectController {
     public ResponseEntity<?> getContentStats(@PathVariable Integer userId) {
         Map<String, Object> contentStats = projectService.getContentStats(userId);
         return ResponseEntity.ok(contentStats);
+    }
+
+    @PutMapping("/{projectId}/status/{status}")
+    public ResponseEntity<ApiResponse> updateProjectStatus(
+            @PathVariable Integer projectId,
+            @PathVariable String status,
+            @RequestParam Integer userId) {
+
+        projectService.updateProjectStatus(userId, projectId, status);
+        return ResponseEntity.ok(new ApiResponse("Project status updated successfully"));
     }
 }
