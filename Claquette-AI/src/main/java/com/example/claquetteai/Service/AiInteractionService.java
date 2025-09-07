@@ -3,7 +3,6 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.Model.*;
 import com.example.claquetteai.Repository.*;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +23,7 @@ public class AiInteractionService {
     private final SceneRepository sceneRepository;
 
     /**
-     * UPDATED: Main method to generate complete screenplay with character consistency
+     * Main method to generate complete screenplay with character consistency
      */
     @Transactional
     public Project generateFullScreenplay(Integer projectId, Integer userId) throws Exception {
@@ -35,7 +34,7 @@ public class AiInteractionService {
         if (user == null) {
             throw new ApiException("user not found");
         }
-        if (!user.getCompany().getIsSubscribed() && user.getUseAI() <= 0){
+        if (!user.getCompany().getIsSubscribed() && user.getUseAI() <= 0) {
             throw new ApiException("you cannot generate project using AI subscribe");
         }
 
@@ -46,7 +45,7 @@ public class AiInteractionService {
         // CRITICAL: Save the project with characters first to establish the relationship
         project = projectRepository.save(project);
 
-        // IMPORTANT FIX: Extract character names for consistency
+        // LOGS: Extract character names for consistency
         String characterNames = extractCharacterNames(characters);
         System.out.println("=== CHARACTER CONSISTENCY CHECK ===");
         System.out.println("Generated Characters: " + characterNames);
@@ -59,7 +58,7 @@ public class AiInteractionService {
             Film film = filmService.generateFilmWithScenes(project, characterNames);
             project.setFilms(film);
 
-            // CRITICAL: Explicitly save each scene to persist many-to-many relationships
+            // Explicitly save each scene to persist many-to-many relationships
             if (film.getScenes() != null) {
                 for (Scene scene : film.getScenes()) {
                     // Make sure the scene has proper character associations
@@ -81,11 +80,11 @@ public class AiInteractionService {
             Set<Episode> episodes = new HashSet<>();
 
             for (int i = 1; i <= episodeCount; i++) {
-                // UPDATED: Pass character names to episode generation for consistency
+                // Pass character names to episode generation for consistency
                 Episode episode = episodeService.generateEpisodeWithScenes(project, i, characterNames);
                 episodes.add(episode);
 
-                // CRITICAL: Explicitly save each scene to persist many-to-many relationships
+                // Explicitly save each scene to persist many-to-many relationships
                 if (episode.getScenes() != null) {
                     for (Scene scene : episode.getScenes()) {
                         // Make sure the scene has proper character associations
@@ -110,7 +109,7 @@ public class AiInteractionService {
         project.setCastingRecommendations(casting);
 
         // Update user AI usage
-        user.setUseAI(user.getUseAI()-1);
+        user.setUseAI(user.getUseAI() - 1);
         userRepository.save(user);
 
         // Save final project with all relationships
@@ -124,7 +123,7 @@ public class AiInteractionService {
     }
 
     /**
-     * NEW: Helper method to extract character names as comma-separated string for AI consistency
+     * Helper method to extract character names as comma-separated string for AI consistency
      */
     private String extractCharacterNames(Set<FilmCharacters> characters) {
         if (characters == null || characters.isEmpty()) {
@@ -142,27 +141,7 @@ public class AiInteractionService {
     }
 
     /**
-     * NEW: Validate that generated scenes use only the expected characters
-     */
-    private void validateSceneCharacterConsistency(Set<Scene> scenes, Set<FilmCharacters> expectedCharacters) {
-        Set<String> expectedNames = expectedCharacters.stream()
-                .map(FilmCharacters::getName)
-                .collect(Collectors.toSet());
-
-        for (Scene scene : scenes) {
-            if (scene.getCharacters() != null) {
-                for (FilmCharacters sceneChar : scene.getCharacters()) {
-                    if (!expectedNames.contains(sceneChar.getName())) {
-                        System.out.println("WARNING: Scene " + scene.getSceneNumber() +
-                                " contains unexpected character: " + sceneChar.getName());
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * NEW: Debug method to analyze character-scene relationships
+     * Debug method to analyze character-scene relationships
      */
     public void debugCharacterSceneRelationships(Project project) {
         System.out.println("=== CHARACTER-SCENE RELATIONSHIP ANALYSIS ===");

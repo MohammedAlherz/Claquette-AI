@@ -15,4 +15,6 @@ public interface SceneRepository extends JpaRepository<Scene, Integer> {
     List<Scene> findSceneByFilm_Project(Project filmProject);
 
     Scene findSceneById(Integer id);
+
+    List<Scene> findScenesByEpisode(Episode episode);
 }

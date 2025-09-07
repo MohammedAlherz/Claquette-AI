@@ -1,7 +1,5 @@
 package com.example.claquetteai.Controller;
 
-import com.example.claquetteai.Api.ApiResponse;
-import com.example.claquetteai.DTO.CastingRecommendationDTOOUT;
 import com.example.claquetteai.Service.CastingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

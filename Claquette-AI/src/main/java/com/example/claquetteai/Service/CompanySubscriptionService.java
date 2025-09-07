@@ -12,6 +12,7 @@ import com.example.claquetteai.Repository.CompanyRepository;
 import com.example.claquetteai.Repository.CompanySubscriptionRepository;
 import com.example.claquetteai.Repository.PaymentRepository;
 import com.example.claquetteai.Repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,16 +80,62 @@ public class CompanySubscriptionService {
         return paymentService.processPayment(payment, subscription.getId());
     }
 
-    public void updateSubscriptionStatus(Integer userId,Integer subscriptionId, String status) {
+    @Transactional
+    public ResponseEntity<Map<String, String>> renewSubscription(Integer companyId, Payment newPaymentData) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ApiException("Company not found with id " + companyId));
+
+        CompanySubscription subscription = subscriptionRepository.findById(companyId)
+                .orElseThrow(() -> new ApiException("Subscription not found"));
+
+        // Verify ownership
+        if (!subscription.getCompany().getId().equals(companyId)) {
+            throw new ApiException("Subscription does not belong to this company");
+        }
+
+        // Check if subscription is expired
+        if (!"EXPIRED".equals(subscription.getStatus())) {
+            throw new ApiException("Subscription is still active and not eligible for renewal yet");
+        }
+
+        // Update subscription
+        subscription.setStartDate(LocalDateTime.now());
+        subscription.setEndDate(LocalDateTime.now().plusMonths(1));
+        subscription.setStatus("PENDING");
+        subscription.setMonthlyPrice(ADVANCED_PRICE);
+        company.setIsSubscribed(true);
+
+        // Find existing payment and update it
+        Payment existingPayment = paymentRepository.findPaymentByCompanySubscription(subscription);
+        if (existingPayment != null) {
+            // Update existing payment with new card details
+            existingPayment.setName(newPaymentData.getName());
+            existingPayment.setNumber(newPaymentData.getNumber());
+            existingPayment.setCvc(newPaymentData.getCvc());
+            existingPayment.setMonth(newPaymentData.getMonth());
+            existingPayment.setYear(newPaymentData.getYear());
+            existingPayment.setAmount(ADVANCED_PRICE);
+            existingPayment.setPaymentDate(LocalDateTime.now());
+            existingPayment.setStatus("PENDING"); // Reset status for renewal
+
+            paymentRepository.save(existingPayment);
+        }
+
+        companyRepository.save(company);
+        subscriptionRepository.save(subscription);
+
+        return paymentService.processPayment(existingPayment, subscription.getId());
+    }
+    public void updateSubscriptionStatus(Integer userId, Integer subscriptionId, String status) {
         User user = userRepository.findUserById(userId);
         CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
         if (subscription == null) {
             throw new ApiException("Subscription not found with id " + subscriptionId);
         }
-        if(user == null){
+        if (user == null) {
             throw new ApiException("User not found");
         }
-        if(!subscription.getCompany().getUser().equals(user)){
+        if (!subscription.getCompany().getUser().equals(user)) {
             throw new ApiException("Not Authorized");
         }
 
@@ -95,18 +143,20 @@ public class CompanySubscriptionService {
         subscriptionRepository.save(subscription);
     }
 
-    public void cancelSubscription(Integer userId,Integer subscriptionId) {
+
+    public void cancelSubscription(Integer userId, Integer subscriptionId) {
         User user = userRepository.findUserById(userId);
         CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
         if (subscription == null) {
             throw new ApiException("Subscription not found with id " + subscriptionId);
         }
-        if(user == null){
+        if (user == null) {
             throw new ApiException("User not found");
         }
-        if(!subscription.getCompany().getUser().equals(user)){
+        if (!subscription.getCompany().getUser().equals(user)) {
             throw new ApiException("Not Authorized");
-        }        if (subscription == null) {
+        }
+        if (subscription == null) {
             throw new ApiException("Subscription not found with id " + subscriptionId);
         }
 
@@ -153,16 +203,16 @@ public class CompanySubscriptionService {
     }
 
 
-    public List<HistorySubscription> historyOfSubscription(Integer userId){
+    public List<HistorySubscription> historyOfSubscription(Integer userId) {
         User user = userRepository.findUserById(userId);
-        if (user == null){
+        if (user == null) {
             throw new ApiException("user not found");
         }
         List<CompanySubscription> companySubscriptions = subscriptionRepository.findCompanySubscriptionsByCompany_User(user);
         List<HistorySubscription> historySubscriptions = new ArrayList<>();
-        for (CompanySubscription c : companySubscriptions){
+        for (CompanySubscription c : companySubscriptions) {
             Payment payment = paymentRepository.findPaymentByCompanySubscription(c);
-            if (payment == null){
+            if (payment == null) {
                 throw new ApiException("payment not found");
             }
             HistorySubscription h = new HistorySubscription();
@@ -173,4 +223,6 @@ public class CompanySubscriptionService {
         }
         return historySubscriptions;
     }
+
+
 }

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/project")
@@ -83,4 +84,15 @@ public class ProjectController {
         return ResponseEntity.ok(new ApiResponse("poster uploaded successfully"));
     }
 
+    @GetMapping("/{userId}/dashboard")
+    public ResponseEntity<?> getDashboardSummary(@PathVariable Integer userId) {
+        Map<String, Object> dashboardData = projectService.getDashboardSummary(userId);
+        return ResponseEntity.ok(dashboardData);
+    }
+
+    @GetMapping("/{userId}/content/statistics")
+    public ResponseEntity<?> getContentStats(@PathVariable Integer userId) {
+        Map<String, Object> contentStats = projectService.getContentStats(userId);
+        return ResponseEntity.ok(contentStats);
+    }
 }

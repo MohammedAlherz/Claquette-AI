@@ -7,10 +7,7 @@ import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.FilmCharacters;
 import com.example.claquetteai.Model.Project;
 import com.example.claquetteai.Model.User;
-import com.example.claquetteai.Repository.CharacterRepository;
-import com.example.claquetteai.Repository.CompanyRepository;
-import com.example.claquetteai.Repository.ProjectRepository;
-import com.example.claquetteai.Repository.UserRepository;
+import com.example.claquetteai.Repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -33,6 +30,8 @@ public class ProjectService {
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
     private final AiClientService aiClientService;
+    private final EpisodeRepository episodeRepository;
+    private final SceneRepository sceneRepository;
 
     public List<ProjectDTOOUT> getAllProjects() {
         return projectRepository.findAll().stream()
@@ -263,4 +262,167 @@ public class ProjectService {
         return projectRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Project not found"));
     }
+
+
+    public Map<String, Object> getDashboardSummary(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        // Get all projects for the user
+        List<Project> projects = projectRepository.findProjectsByCompany_User_Id(userId);
+
+        // Calculate statistics
+        Integer totalProjects = projects.size();
+        Double totalBudget = projects.stream()
+                .mapToDouble(Project::getBudget)
+                .sum();
+
+        // Get project status breakdown
+        Map<String, Long> projectStatusCounts = projects.stream()
+                .collect(Collectors.groupingBy(
+                        Project::getStatus,
+                        Collectors.counting()
+                ));
+
+        // Get characters count across all projects
+        Integer totalCharacters = projects.stream()
+                .mapToInt(project -> characterRepository.findFilmCharactersByProject(project).size())
+                .sum();
+
+        // Get projects
+        List<ProjectDTOOUT> recentProjects = projects.stream()
+                .sorted((p1, p2) -> {
+                    // Sort by startProjectDate descending (most recent first)
+                    if (p1.getStartProjectDate() == null && p2.getStartProjectDate() == null) return 0;
+                    if (p1.getStartProjectDate() == null) return 1;
+                    if (p2.getStartProjectDate() == null) return -1;
+                    return p2.getStartProjectDate().compareTo(p1.getStartProjectDate());
+                })
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        // Count different project types
+        Map<String, Long> projectTypeCounts = projects.stream()
+                .collect(Collectors.groupingBy(
+                        Project::getProjectType,
+                        Collectors.counting()
+                ));
+
+        // Count projects depends on the status
+        long activeProjects = projects.stream()
+                .filter(p -> "IN_DEVELOPMENT".equals(p.getStatus()) ||
+                        "IN_PRODUCTION".equals(p.getStatus()) ||
+                        "PRE_PRODUCTION".equals(p.getStatus()))
+                .count();
+
+        // Build dashboard summary response
+        Map<String, Object> dashboardSummary = new HashMap<>();
+
+        // Main statistics
+        dashboardSummary.put("totalProjects", totalProjects);
+        dashboardSummary.put("totalBudget", totalBudget);
+        dashboardSummary.put("totalCharacters", totalCharacters);
+        dashboardSummary.put("activeProjects", activeProjects);
+
+        // Detailed breakdowns
+        dashboardSummary.put("projectStatusBreakdown", projectStatusCounts);
+        dashboardSummary.put("projectTypeBreakdown", projectTypeCounts);
+
+        // Recent data
+        dashboardSummary.put("recentProjects", recentProjects);
+
+        // Content statistics for the "المحتوى المنشئ" section
+        Map<String, Object> contentStats = new HashMap<>();
+        contentStats.put("seriesCount", projectTypeCounts.getOrDefault("SERIES", 0L));
+        contentStats.put("movieCount", projectTypeCounts.getOrDefault("MOVIE", 0L));
+        contentStats.put("totalCharacters", totalCharacters);
+        dashboardSummary.put("contentStatistics", contentStats);
+
+        return dashboardSummary;
+    }
+
+
+    // Updated getContentStats method with proper scene counting
+    public Map<String, Object> getContentStats(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found with id " + userId);
+        }
+
+        List<Project> projects = projectRepository.findProjectsByCompany_User_Id(userId);
+
+        Map<String, Long> projectTypeCounts = projects.stream()
+                .collect(Collectors.groupingBy(
+                        Project::getProjectType,
+                        Collectors.counting()
+                ));
+
+        Integer totalCharacters = projects.stream()
+                .mapToInt(project -> characterRepository.findFilmCharactersByProject(project).size())
+                .sum();
+
+        Integer totalEpisodes = projects.stream()
+                .mapToInt(Project::getEpisodeCount)
+                .sum();
+
+        // Count scenes across all projects (through episodes)
+        Integer totalScenes = projects.stream()
+                .flatMap(project -> project.getEpisodes().stream())
+                .mapToInt(episode -> sceneRepository.findSceneByEpisode(episode).size())
+                .sum();
+
+        // Alternative: If you have scenes through Film entity
+        // Integer totalScenesFromFilms = projects.stream()
+        //         .filter(project -> project.getFilms() != null)
+        //         .mapToInt(project -> sceneRepository.findScenesByFilm(project.getFilms()).size())
+        //         .sum();
+
+        Map<String, Object> contentStats = new HashMap<>();
+
+        contentStats.put("seriesCount", projectTypeCounts.getOrDefault("SERIES", 0L));
+        contentStats.put("filmCount", projectTypeCounts.getOrDefault("FILM", 0L));
+        contentStats.put("totalCharacters", totalCharacters);
+        contentStats.put("totalEpisodes", totalEpisodes);
+        contentStats.put("totalScenes", totalScenes);
+
+        Map<String, Long> contentByStatus = projects.stream()
+                .collect(Collectors.groupingBy(
+                        Project::getStatus,
+                        Collectors.counting()
+                ));
+        contentStats.put("contentByStatus", contentByStatus);
+
+        Map<String, Long> genreCounts = projects.stream()
+                .filter(p -> p.getGenre() != null && !p.getGenre().trim().isEmpty())
+                .collect(Collectors.groupingBy(
+                        Project::getGenre,
+                        Collectors.counting()
+                ));
+        contentStats.put("genreBreakdown", genreCounts);
+
+        Map<Integer, Long> projectsByYear = projects.stream()
+                .filter(p -> p.getStartProjectDate() != null)
+                .collect(Collectors.groupingBy(
+                        p -> p.getStartProjectDate().getYear(),
+                        Collectors.counting()
+                ));
+        contentStats.put("projectsByYear", projectsByYear);
+
+        Double totalContentBudget = projects.stream()
+                .mapToDouble(Project::getBudget)
+                .sum();
+        contentStats.put("totalContentBudget", totalContentBudget);
+
+        Map<String, Double> avgBudgetByType = projects.stream()
+                .collect(Collectors.groupingBy(
+                        Project::getProjectType,
+                        Collectors.averagingDouble(Project::getBudget)
+                ));
+        contentStats.put("averageBudgetByType", avgBudgetByType);
+
+        return contentStats;
+    }
+
 }
