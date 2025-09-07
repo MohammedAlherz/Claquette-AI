@@ -20,8 +20,10 @@ public class SceneService {
     private final UserRepository userRepository;
     private final FilmRepository filmRepository;
     private final CharacterRepository characterRepository;
+
     public List<SceneDTOOUT> getScenes(Integer userId, Integer projectId){
         Project project = projectRepository.findProjectById(projectId);
+        List<Scene> scenes = new ArrayList<>();
         if (project == null){
             throw new ApiException("project not found");
         }
@@ -32,23 +34,42 @@ public class SceneService {
         if (!project.getCompany().getUser().equals(user)){
             throw new ApiException("not authorised");
         }
+
+        List<SceneDTOOUT> sceneDTOOUTS = new ArrayList<>();
+
         if(project.getProjectType().equals("FILM")){
             Film film = filmRepository.findFilmByProject(project);
             if(film == null){
                 throw new ApiException("Film not found");
             }
+            scenes = sceneRepository.findSceneByFilm_Project(project);
+
+            // For film projects, episode info will be null
+            for (Scene s : scenes){
+                SceneDTOOUT dto = new SceneDTOOUT(s.getDialogue(), null, null);
+                sceneDTOOUTS.add(dto);
+            }
         }else{
-            Episode episode = episodeRepository.findEpisodeByProject(project);
-            if (episode == null){
+            // Handle TV series with episodes
+            List<Episode> episodes = episodeRepository.findEpisodesByProject(project);
+            if (episodes.isEmpty()){
                 throw new ApiException("episode not found");
             }
+
+            // Get scenes from all episodes with episode information
+            for(Episode episode : episodes) {
+                List<Scene> episodeScenes = sceneRepository.findScenesByEpisode(episode);
+                for (Scene s : episodeScenes){
+                    SceneDTOOUT dto = new SceneDTOOUT(
+                            s.getDialogue(),
+                            episode.getEpisodeNumber(),
+                            episode.getTitle()
+                    );
+                    sceneDTOOUTS.add(dto);
+                }
+            }
         }
-        List<Scene> scenes = sceneRepository.findSceneByFilm_Project(project);
-        List<SceneDTOOUT> sceneDTOOUTS = new ArrayList<>();
-        for (Scene s : scenes){
-            SceneDTOOUT dto = new SceneDTOOUT(s.getDialogue());
-            sceneDTOOUTS.add(dto);
-        }
+
         return sceneDTOOUTS;
     }
 

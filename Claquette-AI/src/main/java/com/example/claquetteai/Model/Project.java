@@ -42,6 +42,7 @@ public class Project {
     @Column(columnDefinition = "varchar(10) not null")
     private String projectType;
 
+    @NotEmpty(message = "Genre can not be null")
     @Size(max = 50, message = "Genre should not exceed 50 characters")
     @Column(columnDefinition = "varchar(50)")
     private String genre;
@@ -55,6 +56,7 @@ public class Project {
     @Column(columnDefinition = "varchar(20) not null")
     private String location;
 
+    @NotEmpty(message = "Target Audience can not be null")
     @Size(max = 100, message = "Target audience should not exceed 100 characters")
     @Column(columnDefinition = "varchar(100)")
     private String targetAudience;

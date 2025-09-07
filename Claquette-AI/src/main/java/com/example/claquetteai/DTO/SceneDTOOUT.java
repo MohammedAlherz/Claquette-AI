@@ -9,4 +9,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SceneDTOOUT {
     private String dialogue;
+    private Integer episodeNumber;
+    private String episodeTitle;
 }
