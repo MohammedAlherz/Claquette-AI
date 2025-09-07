@@ -19,7 +19,7 @@ public class EpisodeController {
 
 
     @GetMapping("/{userId}/project-episodes/{projectId}")
-    public ResponseEntity<List<Episode>> getProjectEpisodes(@PathVariable Integer userId,@PathVariable Integer projectId){
+    public ResponseEntity<?> getProjectEpisodes(@PathVariable Integer userId,@PathVariable Integer projectId){
         return ResponseEntity.ok(episodeService.getMyEpisodes(userId,projectId));
     }
 }

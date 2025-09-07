@@ -20,25 +20,10 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-
-    @PostMapping("/card/{subscriptionId}")
-    public ResponseEntity<Map<String, String>> processPayment(
-            @PathVariable Integer subscriptionId,
-            @RequestBody @Valid Payment paymentRequest
-    ) {
-        return paymentService.processPayment(paymentRequest, subscriptionId);
-    }
-
-    @PostMapping("/{userId}/sub/{subscriptionId}")
-    public ResponseEntity<?> processStatus(@PathVariable Integer userId,@PathVariable Integer subscriptionId){
-        String response = paymentService.subscribePaymentStatus(userId, subscriptionId);
-        return ResponseEntity.ok(new ApiResponse(response));
-    }
-
-    @GetMapping("/{userId}/payments/confirm/{subscriptionId}/transaction/{transactionId}")
-    public ResponseEntity<String> confirmPayment(@PathVariable Integer subscriptionId, @PathVariable String transactionId,@PathVariable Integer userId) throws JsonProcessingException {
-        String result = paymentService.updateAndConfirmPayment(subscriptionId, transactionId, userId);
-        return ResponseEntity.ok(result);
+    @PostMapping("/{userId}/payments/confirm/{subscriptionId}/transaction/{transactionId}")
+    public ResponseEntity<?> confirmPasyment(@PathVariable Integer subscriptionId, @PathVariable String transactionId,@PathVariable Integer userId) throws JsonProcessingException {
+      paymentService.updateAndConfirmPayment(subscriptionId, transactionId, userId);
+        return ResponseEntity.ok(new ApiResponse("Paid confirmed"));
     }
 
 

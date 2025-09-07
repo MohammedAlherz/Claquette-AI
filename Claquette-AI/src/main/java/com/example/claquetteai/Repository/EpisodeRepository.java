@@ -12,4 +12,10 @@ public interface EpisodeRepository extends JpaRepository<Episode, Integer> {
     List<Episode> findEpisodesByProject(Project project);
 
     Episode findEpisodeByProject(Project project);
+
+    // Add this method to find episodes by project ID
+    List<Episode> findByProjectId(Integer projectId);
+
+    // Optional: Add method to find episodes by project ID and order by episode number
+    List<Episode> findByProjectIdOrderByEpisodeNumber(Integer projectId);
 }

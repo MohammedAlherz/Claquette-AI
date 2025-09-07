@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CompanySubscriptionDTOOUT {
-    private Integer id;
     private String planType;
     private String status;
     private LocalDateTime startDate;

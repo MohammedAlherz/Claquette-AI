@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,14 +21,12 @@ public class AiInteractionService {
     private final EpisodeService episodeService;
     private final CastingService castingService;
     private final UserRepository userRepository;
-    private final CharacterRepository characterRepository; // Add this
-    private final SceneRepository sceneRepository; // Add this
+    private final SceneRepository sceneRepository;
 
     /**
-     * Main method to generate complete screenplay
-     * FIXED: Added proper transaction management and entity saving order
+     * UPDATED: Main method to generate complete screenplay with character consistency
      */
-    @Transactional // This ensures all operations happen in a single transaction
+    @Transactional
     public Project generateFullScreenplay(Integer projectId, Integer userId) throws Exception {
         // Step 1: Get existing project
         Project project = projectRepository.findById(projectId)
@@ -47,10 +46,17 @@ public class AiInteractionService {
         // CRITICAL: Save the project with characters first to establish the relationship
         project = projectRepository.save(project);
 
+        // IMPORTANT FIX: Extract character names for consistency
+        String characterNames = extractCharacterNames(characters);
+        System.out.println("=== CHARACTER CONSISTENCY CHECK ===");
+        System.out.println("Generated Characters: " + characterNames);
+        System.out.println("Character Count: " + characters.size());
+        System.out.println("===================================");
+
         // Step 3: Generate Film OR Episodes based on project type
         if ("FILM".equals(project.getProjectType())) {
-            // Generate film using FilmService
-            Film film = filmService.generateFilmWithScenes(project);
+            // Generate film using FilmService with character names for consistency
+            Film film = filmService.generateFilmWithScenes(project, characterNames);
             project.setFilms(film);
 
             // CRITICAL: Explicitly save each scene to persist many-to-many relationships
@@ -60,16 +66,23 @@ public class AiInteractionService {
                     if (scene.getCharacters() != null && !scene.getCharacters().isEmpty()) {
                         // Save the scene - this will trigger the cascade to persist relationships
                         sceneRepository.save(scene);
+                        System.out.println("Saved film scene " + scene.getSceneNumber() + " with " +
+                                scene.getCharacters().size() + " characters");
                     }
                 }
             }
+
+            // Validate film character consistency
+            filmService.validateFilmCharacterConsistency(film, characterNames);
+
         } else {
             // For series, determine episode count and generate episodes using EpisodeService
             int episodeCount = project.getEpisodeCount();
             Set<Episode> episodes = new HashSet<>();
 
             for (int i = 1; i <= episodeCount; i++) {
-                Episode episode = episodeService.generateEpisodeWithScenes(project, i);
+                // UPDATED: Pass character names to episode generation for consistency
+                Episode episode = episodeService.generateEpisodeWithScenes(project, i, characterNames);
                 episodes.add(episode);
 
                 // CRITICAL: Explicitly save each scene to persist many-to-many relationships
@@ -79,9 +92,14 @@ public class AiInteractionService {
                         if (scene.getCharacters() != null && !scene.getCharacters().isEmpty()) {
                             // Save the scene - this will trigger the cascade to persist relationships
                             sceneRepository.save(scene);
+                            System.out.println("Saved episode " + i + " scene " + scene.getSceneNumber() +
+                                    " with " + scene.getCharacters().size() + " characters");
                         }
                     }
                 }
+
+                // Validate episode character consistency
+                episodeService.validateEpisodeCharacterConsistency(episode, characterNames);
             }
 
             project.setEpisodes(episodes);
@@ -96,6 +114,101 @@ public class AiInteractionService {
         userRepository.save(user);
 
         // Save final project with all relationships
-        return projectRepository.save(project);
+        Project finalProject = projectRepository.save(project);
+
+        // Run final consistency analysis
+        System.out.println("=== FINAL PROJECT ANALYSIS ===");
+        debugCharacterSceneRelationships(finalProject);
+
+        return finalProject;
+    }
+
+    /**
+     * NEW: Helper method to extract character names as comma-separated string for AI consistency
+     */
+    private String extractCharacterNames(Set<FilmCharacters> characters) {
+        if (characters == null || characters.isEmpty()) {
+            System.out.println("WARNING: No characters provided for consistency check");
+            return "";
+        }
+
+        String characterNames = characters.stream()
+                .map(FilmCharacters::getName)
+                .filter(name -> name != null && !name.trim().isEmpty())
+                .collect(Collectors.joining(", "));
+
+        System.out.println("Extracted character names for AI: " + characterNames);
+        return characterNames;
+    }
+
+    /**
+     * NEW: Validate that generated scenes use only the expected characters
+     */
+    private void validateSceneCharacterConsistency(Set<Scene> scenes, Set<FilmCharacters> expectedCharacters) {
+        Set<String> expectedNames = expectedCharacters.stream()
+                .map(FilmCharacters::getName)
+                .collect(Collectors.toSet());
+
+        for (Scene scene : scenes) {
+            if (scene.getCharacters() != null) {
+                for (FilmCharacters sceneChar : scene.getCharacters()) {
+                    if (!expectedNames.contains(sceneChar.getName())) {
+                        System.out.println("WARNING: Scene " + scene.getSceneNumber() +
+                                " contains unexpected character: " + sceneChar.getName());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * NEW: Debug method to analyze character-scene relationships
+     */
+    public void debugCharacterSceneRelationships(Project project) {
+        System.out.println("=== CHARACTER-SCENE RELATIONSHIP ANALYSIS ===");
+
+        if (project.getCharacters() != null) {
+            System.out.println("Project Characters (" + project.getCharacters().size() + "):");
+            for (FilmCharacters character : project.getCharacters()) {
+                System.out.println("  - " + character.getName() + " (ID: " + character.getId() + ")");
+            }
+        }
+
+        // Analyze film scenes if it's a film
+        if (project.getFilms() != null && project.getFilms().getScenes() != null) {
+            System.out.println("Film Scenes Analysis:");
+            for (Scene scene : project.getFilms().getScenes()) {
+                System.out.println("  Scene " + scene.getSceneNumber() + ":");
+                if (scene.getCharacters() != null) {
+                    for (FilmCharacters character : scene.getCharacters()) {
+                        System.out.println("    - " + character.getName() + " (ID: " + character.getId() + ")");
+                    }
+                } else {
+                    System.out.println("    - No characters associated");
+                }
+            }
+        }
+
+        // Analyze episode scenes if it's a series
+        if (project.getEpisodes() != null) {
+            System.out.println("Episode Scenes Analysis:");
+            for (Episode episode : project.getEpisodes()) {
+                System.out.println("  Episode " + episode.getEpisodeNumber() + ":");
+                if (episode.getScenes() != null) {
+                    for (Scene scene : episode.getScenes()) {
+                        System.out.println("    Scene " + scene.getSceneNumber() + ":");
+                        if (scene.getCharacters() != null) {
+                            for (FilmCharacters character : scene.getCharacters()) {
+                                System.out.println("      - " + character.getName() + " (ID: " + character.getId() + ")");
+                            }
+                        } else {
+                            System.out.println("      - No characters associated");
+                        }
+                    }
+                }
+            }
+        }
+
+        System.out.println("=== END ANALYSIS ===");
     }
 }

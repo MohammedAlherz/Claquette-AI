@@ -54,18 +54,21 @@ public class PromptBuilderService {
     }
 
     /**
-     * Generates prompt for creating character profiles
+     * ENHANCED: Generates prompt for creating character profiles with consistency requirements
      */
     public String charactersPrompt(String storyDescription) {
         return BASE_PROMPT + """
 
         ### TASK
         Generate ONLY the "characters" section with 6–10 characters in JSON format.
+        
+        CRITICAL REQUIREMENT: Remember the exact character names you create here, as they will be used in all future dialogue scenes.
+        Do NOT change character names later. Use only these characters in all dialogue.
 
         {
           "characters": [
             {
-              "name": "string (اسم سعودي/خليجي)",
+              "name": "string (اسم سعودي/خليجي - استخدم هذا الاسم بالضبط في كل الحوارات)",
               "age": number,
               "role": "string (بطل/مساند/خصم...)",
               "traits": ["string", "..."],
@@ -79,16 +82,18 @@ public class PromptBuilderService {
           ]
         }
         
-        only first name with out last name
-        make the age of characters logically not all older or all young make it average and teens and young and parents range of ages from 6 to 40 and if some grandfathers make the range of age 50 to 70
-
+        IMPORTANT RULES:
+        - Use only first names without last names
+        - Make ages logical: mix of teens (16-19), young adults (20-30), and adults (30-45)
+        - Create memorable, distinct character names that you will use consistently
+        - These exact names must appear in ALL future dialogue scenes
+        
         story_description: "%s"
         """.formatted(storyDescription);
     }
 
     /**
-     * Generates prompt for creating episode with scenes
-     * Fixed method signature to match AiInteractionService call
+     * LEGACY METHOD: Original episode prompt (for backward compatibility)
      */
     public String episodePrompt(String projectDescription, int episodeNumber) {
         return BASE_PROMPT + """
@@ -131,7 +136,59 @@ public class PromptBuilderService {
     }
 
     /**
-     * Generates prompt for creating film with scenes
+     * ENHANCED: Generates prompt for creating episode with scenes using EXACT character names
+     */
+    public String episodePrompt(String projectDescription, int episodeNumber, String characterNames) {
+        return BASE_PROMPT + """
+
+        ### TASK
+        Based on this project description: "%s"
+        
+        CRITICAL CHARACTER CONSISTENCY RULE:
+        You must use ONLY these exact character names in all dialogue: %s
+        DO NOT create new characters or change these names. Use these names exactly as provided.
+        
+        Generate episode %d with detailed scenes in JSON format:
+
+        {
+          "episode": {
+            "episode": %d,
+            "title": "string",
+            "summary": "string (3–4 جمل)",
+            "dramatic_goal": "string",
+            "key_characters": [%s],
+            "scenes": [
+              {
+                "slug": "string (INT./EXT. – المكان – وقت اليوم)",
+                "sound": "string (وصف الأصوات)",
+                "mood_light": "string (إضاءة/جو)",
+                "purpose": "string (Beat درامي)",
+                "action": "string (وصف بصري/حركة/سياق)",
+                "dialogue": [
+                  { "character": "string (استخدم فقط من: %s)", "line": "string (جملة/جمل متعددة)", "aside": "string (اختياري: نبرة/فعل موجز)" }
+                ],
+                "internal_monologue": [
+                  { "character": "string (استخدم فقط من: %s)", "thought": "string" }
+                ],
+                "turning_point": "string (نقطة تغيير داخل المشهد إن وُجدت)"
+              }
+            ],
+            "climax": "string (ذروة الحلقة)",
+            "tag": "string (خطّاف للحلقة التالية)"
+          }
+        }
+
+        DIALOGUE RULES:
+        - Use ONLY these character names: %s
+        - Do NOT invent new characters like "المدرب" or "عضو اللجنة"
+        - If you need additional voices, use existing characters in different roles
+        - Create 15-25 detailed scenes with rich dialogue and action
+        """.formatted(projectDescription, characterNames, episodeNumber, episodeNumber,
+                formatCharacterNamesForJson(characterNames), characterNames, characterNames, characterNames);
+    }
+
+    /**
+     * LEGACY METHOD: Original film prompt (for backward compatibility)
      */
     public String filmPrompt(String projectDescription) {
         return BASE_PROMPT + """
@@ -170,6 +227,53 @@ public class PromptBuilderService {
     }
 
     /**
+     * ENHANCED: Generates prompt for creating film with scenes using EXACT character names
+     */
+    public String filmPrompt(String projectDescription, String characterNames) {
+        return BASE_PROMPT + """
+
+        ### TASK
+        Based on this project description: "%s"
+        
+        CRITICAL CHARACTER CONSISTENCY RULE:
+        You must use ONLY these exact character names in all dialogue: %s
+        DO NOT create new characters or change these names. Use these names exactly as provided.
+        
+        Generate a complete FILM with scenes in JSON format:
+
+        {
+          "film": {
+            "title": "string",
+            "summary": "string (وصف الفيلم)",
+            "duration_minutes": number,
+            "scenes": [
+              {
+                "slug": "string (INT./EXT. – المكان – وقت اليوم)",
+                "sound": "string (وصف الأصوات)",
+                "mood_light": "string (إضاءة/جو)",
+                "purpose": "string (Beat درامي)",
+                "action": "string (وصف بصري/حركة/سياق)",
+                "dialogue": [
+                  { "character": "string (استخدم فقط من: %s)", "line": "string (جملة/جمل متعددة)", "aside": "string (اختياري: نبرة/فعل موجز)" }
+                ],
+                "internal_monologue": [
+                  { "character": "string (استخدم فقط من: %s)", "thought": "string" }
+                ],
+                "turning_point": "string (نقطة تغيير داخل المشهد إن وُجدت)"
+              }
+            ]
+          }
+        }
+
+        DIALOGUE RULES:
+        - Use ONLY these character names: %s
+        - Do NOT invent new characters
+        - If you need additional voices, use existing characters in different contexts
+        - Create 80-120 detailed scenes for a complete feature film
+        """.formatted(projectDescription, characterNames, characterNames, characterNames, characterNames);
+    }
+
+    /**
      * Generates prompt for creating casting recommendations
      */
     public String castingPrompt(String projectInfo) {
@@ -200,5 +304,22 @@ public class PromptBuilderService {
         Suggest 2-3 suitable Saudi actors (born after 1980 and they has new movies or series in saudi arabia tv 2022+) for each main character.
         Include detailed reasoning for each casting choice.
         """.formatted(projectInfo);
+    }
+
+    /**
+     * Helper method to format character names for JSON arrays
+     */
+    private String formatCharacterNamesForJson(String characterNames) {
+        if (characterNames == null || characterNames.trim().isEmpty()) {
+            return "";
+        }
+
+        String[] names = characterNames.split(",");
+        StringBuilder jsonArray = new StringBuilder();
+        for (int i = 0; i < names.length; i++) {
+            if (i > 0) jsonArray.append(", ");
+            jsonArray.append("\"").append(names[i].trim()).append("\"");
+        }
+        return jsonArray.toString();
     }
 }

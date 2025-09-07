@@ -45,7 +45,7 @@ public class CompanyController {
     public ResponseEntity<?> register(@RequestBody @Valid CompanyDTOIN dto) {
         companyService.registerCompanyWithVerification(dto);
         return ResponseEntity.ok().body(new ApiResponse(
-                "✅ Company registered successfully. Please check your email to verify your account."
+                "Company registered successfully. Please check your email to verify your account."
         ));
     }
 
@@ -53,13 +53,13 @@ public class CompanyController {
     @PostMapping("/verify/{userId}")
     public ResponseEntity<?> verify(@PathVariable Integer userId, @RequestParam("code") String code) {
         companyService.verifyUserEmail(userId, code);
-        return ResponseEntity.ok().body(new ApiResponse("✅ Email verified successfully!"));
+        return ResponseEntity.ok().body(new ApiResponse("Email verified successfully!"));
     }
 
     @PostMapping("/resend/{userId}")
     public ResponseEntity<?> resend(@PathVariable Integer userId) {
         companyService.resendVerificationCode(userId);
-        return ResponseEntity.ok().body(new ApiResponse("✅ New verification code sent to your email."));
+        return ResponseEntity.ok().body(new ApiResponse("New verification code sent to your email."));
     }
 
 
@@ -77,14 +77,14 @@ public class CompanyController {
     }
 
     @PostMapping(value = "/{userId}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse> uploadUserPhoto(@PathVariable Integer userId,
+    public ResponseEntity<?> uploadUserPhoto(@PathVariable Integer userId,
                                                 @RequestParam("file") MultipartFile file) {
         companyService.uploadProfilePhoto(userId, file);
         return ResponseEntity.ok(new ApiResponse("photo uploaded successfully"));
     }
 
     @GetMapping("/{userId}/photo")
-    public ResponseEntity<byte[]> getUserPhoto(@PathVariable Integer userId) {
+    public ResponseEntity<?> getUserPhoto(@PathVariable Integer userId) {
         return companyService.getUserPhotoResponse(userId);
     }
 

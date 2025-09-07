@@ -17,18 +17,13 @@ public class SceneController {
     private final SceneService sceneService;
 
     @GetMapping("/{userId}/project/{projectId}")
-    public ResponseEntity<List<SceneDTOOUT>> scenes(@PathVariable Integer userId, @PathVariable Integer projectId){
+    public ResponseEntity<?> scenes(@PathVariable Integer userId, @PathVariable Integer projectId){
         return ResponseEntity.ok(sceneService.getScenes(userId, projectId));
     }
 
     @GetMapping("/{userId}/project/{projectId}/characters-count")
-    public ResponseEntity<ApiResponse> charactersCount(@PathVariable Integer userId, @PathVariable Integer projectId){
-        return ResponseEntity.ok(new ApiResponse(sceneService.characterScene(userId, projectId).toString()));
+    public ResponseEntity<?> charactersCount(@PathVariable Integer userId, @PathVariable Integer projectId){
+        return ResponseEntity.ok(sceneService.characterScene(userId, projectId));
     }
 
-    @PutMapping("/{userId}/project/{projectId}/scene/{sceneId}")
-    public ResponseEntity<ApiResponse> updateScene(@PathVariable Integer userId,@PathVariable Integer projectId,@PathVariable Integer sceneId,@RequestBody SceneDTOIN sceneDTOIN){
-        sceneService.updateScene(userId, projectId, sceneId, sceneDTOIN);
-        return ResponseEntity.ok(new ApiResponse("scene updated"));
-    }
 }

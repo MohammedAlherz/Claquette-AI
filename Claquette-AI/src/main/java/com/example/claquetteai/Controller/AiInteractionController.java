@@ -14,7 +14,7 @@ public class AiInteractionController {
     private final AiInteractionService aiInteractionService;
 
     @PostMapping("/{userId}/project/{projectId}")
-    public ResponseEntity<ApiResponse> generateScreenplay(
+    public ResponseEntity<?> generateScreenplay(
             @PathVariable("projectId") Integer projectId, @PathVariable Integer userId) throws Exception {
 
         aiInteractionService.generateFullScreenplay(projectId, userId);

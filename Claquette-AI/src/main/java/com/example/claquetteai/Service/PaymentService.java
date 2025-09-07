@@ -50,6 +50,9 @@ public class PaymentService {
         paymentRequest.setAmount(companySubscription.getMonthlyPrice());
         paymentRequest.setCurrency("SAR");
 
+        if(paymentRequest.getAmount() < companySubscription.getMonthlyPrice()){
+            throw new ApiException("insufficient amount!!!");
+        }
 
         String requestBody = String.format(
                 "source[type]=card&source[name]=%s&source[number]=%s&source[cvc]=%s" +
@@ -160,7 +163,7 @@ public class PaymentService {
 
     }
 
-    public String updateAndConfirmPayment(Integer subscriptionId, String transactionId, Integer userId) throws JsonProcessingException {
+    public void updateAndConfirmPayment(Integer subscriptionId, String transactionId, Integer userId) throws JsonProcessingException {
         // 1. Fetch subscription
         CompanySubscription subscription = companySubscriptionRepository.findCompanySubscriptionById(subscriptionId);
         if (subscription == null) {
@@ -232,7 +235,6 @@ public class PaymentService {
                     emailException.printStackTrace();
                 }
             }
-            return response.getBody();
         } else {
             String errorMessage = json.has("message") ? json.get("message").asText() : "Unknown error";
             throw new ApiException("Moyasar error: " + errorMessage);
