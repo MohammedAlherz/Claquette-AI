@@ -1,6 +1,7 @@
 package com.example.claquetteai.Service;
 
 import com.example.claquetteai.Model.*;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -17,50 +18,6 @@ import java.util.HashMap;
 public class JsonExtractor {
 
     private final ObjectMapper mapper = new ObjectMapper();
-
-    /**
-     * Extracts basic project information from AI JSON response
-     * Creates a Project entity with essential fields populated
-     */
-    public Project extractProject(String json) throws Exception {
-        // Fix assumptions formatting issues before parsing
-        json = fixAssumptionsFormat(json);
-
-        // Parse the cleaned JSON
-        JsonNode root = mapper.readTree(json);
-        JsonNode projectNode = root.path("project");
-
-        // Create new project entity
-        Project project = new Project();
-
-        // Set basic project information
-        project.setTitle(projectNode.path("title").asText());
-        project.setDescription(projectNode.path("story_description").asText());
-
-        // Determine project type based on episode count
-        int episodesCount = projectNode.path("episodes_count").asInt(1);
-        project.setProjectType(episodesCount == 1 ? "FILM" : "SERIES");
-
-        // Extract optional fields from AI response
-        if (projectNode.has("genre")) {
-            project.setGenre(projectNode.path("genre").asText());
-        }
-
-        if (projectNode.has("target_audience")) {
-            project.setTargetAudience(projectNode.path("target_audience").asText());
-        }
-
-        // Handle assumptions - append to description if present
-        if (projectNode.has("assumptions")) {
-            List<String> assumptions = extractAssumptions(projectNode.get("assumptions"));
-            if (!assumptions.isEmpty()) {
-                project.setDescription(project.getDescription() + "\n\nAssumptions: " + String.join("; ", assumptions));
-            }
-        }
-
-        return project;
-    }
-
     /**
      * Extracts Film with scenes from AI JSON response
      * Creates Film entity with scenes and character associations
@@ -98,7 +55,7 @@ public class JsonExtractor {
     }
 
     /**
-     * ENHANCED: Extracts scenes for film with improved dialogue structure
+     * COMPLETELY REWRITTEN: Extracts scenes for film with proper character-dialogue separation
      */
     private Set<Scene> extractScenesForFilm(JsonNode filmNode, Film film, Map<String, FilmCharacters> characterMap) {
         Set<Scene> scenes = new HashSet<>();
@@ -112,9 +69,9 @@ public class JsonExtractor {
             scene.setActions(sceneNode.path("action").asText());
             scene.setFilm(film);
 
-            // ENHANCED: Extract dialogue with proper character separation
+            // COMPLETELY NEW APPROACH: Process dialogue and characters separately
             Set<FilmCharacters> sceneCharacters = new HashSet<>();
-            String formattedDialogue = extractAndFormatDialogue(sceneNode, characterMap, sceneCharacters);
+            String formattedDialogue = processSceneDialogueAndCharacters(sceneNode, characterMap, sceneCharacters);
 
             scene.setDialogue(formattedDialogue);
             scene.setCharacters(sceneCharacters);
@@ -182,57 +139,17 @@ public class JsonExtractor {
         Map<String, FilmCharacters> characterMap = createCharacterMapFromProject(project);
 
         // Extract scenes for this episode with character associations
-        Set<Scene> scenes = extractScenesFromNode(episodeNode, episode, characterMap);
+        Set<Scene> scenes = extractScenesFromEpisodeNode(episodeNode, episode, characterMap);
         episode.setScenes(scenes);
 
         return episode;
     }
 
-    /**
-     * Extracts episodes and their scenes from AI JSON response (legacy method)
-     */
-    public Set<Episode> extractEpisodes(String json, Project project) throws Exception {
-        JsonNode root = mapper.readTree(json);
-        Set<Episode> episodes = new HashSet<>();
-
-        // Create character map for linking scenes to characters
-        Map<String, FilmCharacters> characterMap = createCharacterMapFromProject(project);
-
-        // Process each episode in the JSON
-        for (JsonNode epNode : root.path("episodes")) {
-            Episode episode = new Episode();
-
-            // Set basic episode information
-            episode.setProject(project);
-            episode.setEpisodeNumber(epNode.path("episode").asInt());
-            episode.setTitle(epNode.path("title").asText());
-
-            // Build episode summary (combine summary and dramatic goal)
-            String summary = epNode.path("summary").asText();
-            if (epNode.has("dramatic_goal")) {
-                summary += " | Goal: " + epNode.path("dramatic_goal").asText();
-            }
-            episode.setSummary(summary);
-
-            // Only set duration if provided by AI
-            if (epNode.has("duration_minutes")) {
-                episode.setDurationMinutes(epNode.path("duration_minutes").asInt());
-            }
-
-            // Extract scenes for this episode with character associations
-            Set<Scene> scenes = extractScenesFromNode(epNode, episode, characterMap);
-            episode.setScenes(scenes);
-
-            episodes.add(episode);
-        }
-
-        return episodes;
-    }
 
     /**
-     * ENHANCED: Extracts scenes from a JSON node with improved dialogue structure
+     * COMPLETELY REWRITTEN: Extracts scenes from episode node with proper character-dialogue separation
      */
-    private Set<Scene> extractScenesFromNode(JsonNode parentNode, Episode episode, Map<String, FilmCharacters> characterMap) {
+    private Set<Scene> extractScenesFromEpisodeNode(JsonNode parentNode, Episode episode, Map<String, FilmCharacters> characterMap) {
         Set<Scene> scenes = new HashSet<>();
         int sceneCounter = 1;
 
@@ -245,9 +162,9 @@ public class JsonExtractor {
             scene.setActions(sceneNode.path("action").asText());
             scene.setEpisode(episode);
 
-            // ENHANCED: Extract dialogue with proper character separation
+            // COMPLETELY NEW APPROACH: Process dialogue and characters separately
             Set<FilmCharacters> sceneCharacters = new HashSet<>();
-            String formattedDialogue = extractAndFormatDialogue(sceneNode, characterMap, sceneCharacters);
+            String formattedDialogue = processSceneDialogueAndCharacters(sceneNode, characterMap, sceneCharacters);
 
             scene.setDialogue(formattedDialogue);
             scene.setCharacters(sceneCharacters);
@@ -279,42 +196,76 @@ public class JsonExtractor {
     }
 
     /**
-     * NEW METHOD: Extracts and formats dialogue with proper character separation
-     * This method creates a clean, structured dialogue format
+     * COMPLETELY NEW METHOD: Processes dialogue and characters with proper validation and cleanup
      */
-    private String extractAndFormatDialogue(JsonNode sceneNode, Map<String, FilmCharacters> characterMap, Set<FilmCharacters> sceneCharacters) {
+    private String processSceneDialogueAndCharacters(JsonNode sceneNode, Map<String, FilmCharacters> characterMap, Set<FilmCharacters> sceneCharacters) {
         StringBuilder dialogueBuilder = new StringBuilder();
+        List<String> dialogueLines = new ArrayList<>();
 
-        for (JsonNode dialogueNode : sceneNode.path("dialogue")) {
-            String characterName = dialogueNode.path("character").asText();
-            String line = dialogueNode.path("line").asText();
+        System.out.println("=== PROCESSING SCENE DIALOGUE ===");
+
+        // Check if dialogue node exists and is not empty
+        JsonNode dialogueNode = sceneNode.path("dialogue");
+        if (dialogueNode.isMissingNode() || dialogueNode.isEmpty()) {
+            System.out.println("WARNING: No dialogue found in scene");
+            return "";
+        }
+
+        // Process each dialogue entry
+        for (JsonNode dialogueEntry : dialogueNode) {
+            String characterName = dialogueEntry.path("character").asText();
+            String line = dialogueEntry.path("line").asText();
+
+            // Skip empty dialogue entries
+            if (characterName.trim().isEmpty() || line.trim().isEmpty()) {
+                System.out.println("WARNING: Skipping empty dialogue entry");
+                continue;
+            }
 
             // Handle stage directions/asides
             String aside = "";
-            if (dialogueNode.has("aside") && !dialogueNode.path("aside").asText().trim().isEmpty()) {
-                aside = " (" + dialogueNode.path("aside").asText() + ")";
+            if (dialogueEntry.has("aside") && !dialogueEntry.path("aside").asText().trim().isEmpty()) {
+                aside = " (" + dialogueEntry.path("aside").asText() + ")";
             }
 
-            // Format the dialogue line properly
-            dialogueBuilder.append(characterName)
-                    .append(": ")
-                    .append(line)
-                    .append(aside)
-                    .append("\n");
+            // Format the dialogue line
+            String formattedLine = characterName + ": " + line + aside;
+            dialogueLines.add(formattedLine);
 
-            // Associate character with scene if character exists
-            FilmCharacters character = findCharacterByName(characterName, characterMap);
+            System.out.println("Processing dialogue: " + characterName + " -> " + line.substring(0, Math.min(50, line.length())) + "...");
+
+            // Find and associate character with scene
+            FilmCharacters character = findCharacterByNameImproved(characterName, characterMap);
             if (character != null) {
                 sceneCharacters.add(character);
-                // Maintain both sides of the many-to-many relationship
-                if (character.getScenes() == null) {
-                    character.setScenes(new HashSet<>());
+                System.out.println("✓ Associated character " + character.getName() + " (ID: " + character.getId() + ") with scene");
+            } else {
+                System.out.println("✗ Character '" + characterName + "' not found in project characters");
+
+                // Try to find closest match
+                String closestMatch = findClosestCharacterName(characterName, characterMap);
+                if (closestMatch != null) {
+                    System.out.println("  Suggestion: Did you mean '" + closestMatch + "'?");
+                    FilmCharacters suggestedChar = characterMap.get(closestMatch);
+                    if (suggestedChar != null) {
+                        sceneCharacters.add(suggestedChar);
+                        System.out.println("  ✓ Using suggested character " + suggestedChar.getName() + " (ID: " + suggestedChar.getId() + ")");
+                    }
                 }
             }
         }
-        System.out.println("Dialogue Builder"+dialogueBuilder.toString());
 
-        return dialogueBuilder.toString().trim();
+        // Join all dialogue lines
+        String finalDialogue = String.join("\n", dialogueLines);
+
+        System.out.println("=== SCENE SUMMARY ===");
+        System.out.println("Total dialogue lines: " + dialogueLines.size());
+        System.out.println("Total characters in scene: " + sceneCharacters.size());
+        System.out.println("Character IDs: " + sceneCharacters.stream().map(c -> c.getId()).toList());
+        System.out.println("Final dialogue length: " + finalDialogue.length());
+        System.out.println("======================");
+
+        return finalDialogue;
     }
 
     /**
@@ -328,34 +279,38 @@ public class JsonExtractor {
                     // Store with exact name and normalized name for flexible matching
                     characterMap.put(character.getName(), character);
                     characterMap.put(character.getName().toLowerCase().trim(), character);
+                    System.out.println("Added character to map: " + character.getName() + " (ID: " + character.getId() + ")");
                 }
             }
         }
+        System.out.println("Character map created with " + (characterMap.size()/2) + " unique characters");
         return characterMap;
     }
 
     /**
-     * Finds a character by name using flexible matching
+     * IMPROVED: Finds a character by name using flexible matching with better debugging
      */
-    private FilmCharacters findCharacterByName(String characterName, Map<String, FilmCharacters> characterMap) {
+    private FilmCharacters findCharacterByNameImproved(String characterName, Map<String, FilmCharacters> characterMap) {
         if (characterName == null || characterName.trim().isEmpty()) {
             return null;
         }
 
+        String cleanName = characterName.trim();
+
         // Try exact match first
-        FilmCharacters character = characterMap.get(characterName);
+        FilmCharacters character = characterMap.get(cleanName);
         if (character != null) {
             return character;
         }
 
         // Try normalized match
-        character = characterMap.get(characterName.toLowerCase().trim());
+        character = characterMap.get(cleanName.toLowerCase().trim());
         if (character != null) {
             return character;
         }
 
-        // Try partial matching for cases where dialogue uses shortened names
-        String normalizedSearch = characterName.toLowerCase().trim();
+        // Try partial matching
+        String normalizedSearch = cleanName.toLowerCase().trim();
         for (Map.Entry<String, FilmCharacters> entry : characterMap.entrySet()) {
             String mapKey = entry.getKey().toLowerCase().trim();
             if (mapKey.contains(normalizedSearch) || normalizedSearch.contains(mapKey)) {
@@ -364,6 +319,37 @@ public class JsonExtractor {
         }
 
         return null; // Character not found
+    }
+
+    /**
+     * NEW METHOD: Finds the closest character name for suggestions
+     */
+    private String findClosestCharacterName(String targetName, Map<String, FilmCharacters> characterMap) {
+        String normalizedTarget = targetName.toLowerCase().trim();
+        String closestMatch = null;
+        int minDistance = Integer.MAX_VALUE;
+
+        for (String characterName : characterMap.keySet()) {
+            String normalizedChar = characterName.toLowerCase().trim();
+
+            // Skip if this is just a normalized version of another entry
+            if (characterMap.get(characterName) == null) continue;
+
+            // Simple distance calculation
+            int distance = Math.abs(normalizedTarget.length() - normalizedChar.length());
+
+            // Check for partial matches
+            if (normalizedChar.contains(normalizedTarget) || normalizedTarget.contains(normalizedChar)) {
+                distance = 0;
+            }
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestMatch = characterName;
+            }
+        }
+
+        return closestMatch;
     }
 
     /**
@@ -473,39 +459,307 @@ public class JsonExtractor {
     }
 
     /**
-     * Extracts casting recommendations from AI JSON response
+     * FIXED: Extracts casting recommendations from AI JSON response with robust error handling
      */
     public Set<CastingRecommendation> extractCasting(String json, Project project) throws Exception {
-        JsonNode root = mapper.readTree(json);
-        Set<CastingRecommendation> castingRecommendations = new HashSet<>();
+        try {
+            // Clean and validate JSON before parsing
+            json = cleanJsonResponse(json);
 
-        // Process each character's casting suggestions
-        for (JsonNode castNode : root.path("casting")) {
-            String characterName = castNode.path("character").asText();
+            if (json == null || json.trim().isEmpty()) {
+                System.out.println("ERROR: Empty or null JSON response for casting");
+                return new HashSet<>();
+            }
 
-            // Process each actor suggestion for this character
-            for (JsonNode suggestionNode : castNode.path("suggestions")) {
-                CastingRecommendation recommendation = new CastingRecommendation();
+            System.out.println("=== PARSING CASTING JSON ===");
+            System.out.println("JSON length: " + json.length());
+            System.out.println("First 200 characters: " + json.substring(0, Math.min(200, json.length())));
 
-                // Set casting recommendation details
-                recommendation.setProject(project);
-                recommendation.setCharacterName(characterName);
-                recommendation.setRecommendedActorName(suggestionNode.path("actor").asText());
-                recommendation.setReasoning(suggestionNode.path("why").asText());
+            JsonNode root = mapper.readTree(json);
+            Set<CastingRecommendation> castingRecommendations = new HashSet<>();
 
-                // Convert percentage to decimal (87% -> 0.87)
-                recommendation.setMatchScore(suggestionNode.path("match_percent").asDouble() / 100.0);
-                recommendation.setProfile(suggestionNode.path("profile").asText());
-                recommendation.setAge(suggestionNode.path("age").asInt());
+            // Create a map of character names to FilmCharacters for easy lookup
+            Map<String, FilmCharacters> characterMap = new HashMap<>();
 
-                // Set timestamps
-                recommendation.setCreatedAt(LocalDateTime.now());
-                recommendation.setUpdatedAt(LocalDateTime.now());
+            if (project.getCharacters() != null) {
+                for (FilmCharacters character : project.getCharacters()) {
+                    // Store with exact name and normalized name for flexible matching
+                    characterMap.put(character.getName(), character);
+                    characterMap.put(character.getName().toLowerCase().trim(), character);
+                    System.out.println("Added character to casting map: " + character.getName() + " (ID: " + character.getId() + ")");
+                }
+            }
 
-                castingRecommendations.add(recommendation);
+            System.out.println("=== PROCESSING CASTING RECOMMENDATIONS ===");
+            System.out.println("Available characters: " + characterMap.size()/2);
+
+            // Check if casting node exists
+            JsonNode castingNode = root.path("casting");
+            if (castingNode.isMissingNode() || !castingNode.isArray()) {
+                System.out.println("WARNING: No 'casting' array found in JSON response");
+                return castingRecommendations;
+            }
+
+            // Process each character's casting suggestions
+            for (JsonNode castNode : castingNode) {
+                String characterName = castNode.path("character").asText();
+                System.out.println("Processing casting for character: " + characterName);
+
+                // Find the corresponding FilmCharacters entity using flexible matching
+                FilmCharacters filmCharacter = findCharacterForCasting(characterName, characterMap);
+                if (filmCharacter == null) {
+                    System.out.println("Warning: Character '" + characterName + "' not found in project characters");
+                    // Try to find closest match
+                    String closestMatch = findClosestCharacterName(characterName, characterMap);
+                    if (closestMatch != null) {
+                        System.out.println("Suggestion: Did you mean '" + closestMatch + "'?");
+                        filmCharacter = characterMap.get(closestMatch);
+                    }
+
+                    if (filmCharacter == null) {
+                        System.out.println("Skipping casting for unknown character: " + characterName);
+                        continue; // Skip if character not found
+                    }
+                }
+
+                // Process ALL suggestions for this character (One-to-Many)
+                JsonNode suggestions = castNode.path("suggestions");
+                if (suggestions.isArray() && suggestions.size() > 0) {
+                    int priority = 1; // Start with highest priority
+
+                    for (JsonNode suggestion : suggestions) {
+                        // Take up to 3 suggestions per character to avoid too many recommendations
+                        if (priority > 3) break;
+
+                        try {
+                            CastingRecommendation recommendation = new CastingRecommendation();
+                            recommendation.setProject(project);
+                            recommendation.setCharacter(filmCharacter);
+
+                            // Safely extract actor name with validation
+                            String actorName = safeGetTextValue(suggestion, "actor", "Unknown Actor");
+                            recommendation.setRecommendedActorName(actorName);
+
+                            // Safely extract reasoning
+                            String reasoning = safeGetTextValue(suggestion, "why", "No reasoning provided");
+                            recommendation.setReasoning(reasoning);
+
+                            // Safely extract and convert match percentage
+                            double matchScore = safeGetDoubleValue(suggestion, "match_percent", 50.0) / 100.0;
+                            recommendation.setMatchScore(Math.max(0.0, Math.min(1.0, matchScore))); // Clamp between 0-1
+
+                            // Safely extract profile
+                            String profile = safeGetTextValue(suggestion, "profile", "No profile available");
+                            recommendation.setProfile(profile);
+
+                            // Safely extract age
+                            int age = safeGetIntValue(suggestion, "age", 30);
+                            recommendation.setAge(age);
+
+                            recommendation.setPriority(priority); // Set priority (1 = best match)
+                            recommendation.setCreatedAt(LocalDateTime.now());
+                            recommendation.setUpdatedAt(LocalDateTime.now());
+
+                            castingRecommendations.add(recommendation);
+
+                            System.out.println("✓ Created casting recommendation #" + priority + " for " + filmCharacter.getName() +
+                                    " -> " + recommendation.getRecommendedActorName() + " (Character ID: " + filmCharacter.getId() + ")");
+
+                            priority++;
+
+                        } catch (Exception e) {
+                            System.out.println("ERROR: Failed to process suggestion #" + priority + " for character " + characterName + ": " + e.getMessage());
+                            // Continue with next suggestion instead of failing completely
+                        }
+                    }
+                } else {
+                    System.out.println("Warning: No suggestions found for character: " + characterName);
+                }
+            }
+
+            System.out.println("=== CASTING SUMMARY ===");
+            System.out.println("Total casting recommendations created: " + castingRecommendations.size());
+            System.out.println("========================");
+
+            return castingRecommendations;
+
+        } catch (JsonParseException e) {
+            System.out.println("ERROR: JSON parsing failed at line " + e.getLocation().getLineNr() +
+                    ", column " + e.getLocation().getColumnNr());
+            System.out.println("Error message: " + e.getMessage());
+            System.out.println("Problematic JSON snippet around error:");
+
+            // Try to show the problematic area
+            String[] lines = json.split("\n");
+            int errorLine = (int) e.getLocation().getLineNr() - 1; // Convert to 0-based
+            int startLine = Math.max(0, errorLine - 2);
+            int endLine = Math.min(lines.length - 1, errorLine + 2);
+
+            for (int i = startLine; i <= endLine; i++) {
+                String prefix = (i == errorLine) ? ">>> " : "    ";
+                System.out.println(prefix + "Line " + (i + 1) + ": " + lines[i]);
+            }
+
+            throw new Exception("Failed to parse casting JSON: " + e.getMessage(), e);
+
+        } catch (Exception e) {
+            System.out.println("ERROR: Unexpected error during casting extraction: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    /**
+     * NEW: Cleans and validates JSON response to handle common formatting issues
+     */
+    private String cleanJsonResponse(String json) {
+        if (json == null) return null;
+
+        // Remove any leading/trailing whitespace
+        json = json.trim();
+
+        // Remove any potential markdown code block markers
+        if (json.startsWith("```json")) {
+            json = json.substring(7);
+        }
+        if (json.startsWith("```")) {
+            json = json.substring(3);
+        }
+        if (json.endsWith("```")) {
+            json = json.substring(0, json.length() - 3);
+        }
+
+        json = json.trim();
+
+        // Basic validation - must start with { or [
+        if (!json.startsWith("{") && !json.startsWith("[")) {
+            System.out.println("WARNING: JSON doesn't start with { or [, attempting to find JSON start");
+            int jsonStart = json.indexOf("{");
+            if (jsonStart == -1) {
+                jsonStart = json.indexOf("[");
+            }
+            if (jsonStart > 0) {
+                json = json.substring(jsonStart);
             }
         }
 
-        return castingRecommendations;
+        return json;
+    }
+
+    /**
+     * NEW: Safely extracts text value from JsonNode with fallback
+     */
+    private String safeGetTextValue(JsonNode node, String fieldName, String defaultValue) {
+        try {
+            JsonNode fieldNode = node.path(fieldName);
+            if (fieldNode.isMissingNode() || fieldNode.isNull()) {
+                return defaultValue;
+            }
+
+            String value = fieldNode.asText();
+            return (value == null || value.trim().isEmpty()) ? defaultValue : value.trim();
+
+        } catch (Exception e) {
+            System.out.println("WARNING: Failed to extract text field '" + fieldName + "', using default: " + defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * NEW: Safely extracts double value from JsonNode with fallback
+     */
+    private double safeGetDoubleValue(JsonNode node, String fieldName, double defaultValue) {
+        try {
+            JsonNode fieldNode = node.path(fieldName);
+            if (fieldNode.isMissingNode() || fieldNode.isNull()) {
+                return defaultValue;
+            }
+
+            if (fieldNode.isNumber()) {
+                return fieldNode.asDouble();
+            }
+
+            // Try to parse as string if it's not a number
+            String textValue = fieldNode.asText();
+            if (textValue != null && !textValue.trim().isEmpty()) {
+                // Remove any non-numeric characters except decimal point
+                textValue = textValue.replaceAll("[^0-9.]", "");
+                if (!textValue.isEmpty()) {
+                    return Double.parseDouble(textValue);
+                }
+            }
+
+            return defaultValue;
+
+        } catch (Exception e) {
+            System.out.println("WARNING: Failed to extract double field '" + fieldName + "', using default: " + defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * NEW: Safely extracts integer value from JsonNode with fallback
+     */
+    private int safeGetIntValue(JsonNode node, String fieldName, int defaultValue) {
+        try {
+            JsonNode fieldNode = node.path(fieldName);
+            if (fieldNode.isMissingNode() || fieldNode.isNull()) {
+                return defaultValue;
+            }
+
+            if (fieldNode.isNumber()) {
+                return fieldNode.asInt();
+            }
+
+            // Try to parse as string if it's not a number
+            String textValue = fieldNode.asText();
+            if (textValue != null && !textValue.trim().isEmpty()) {
+                // Remove any non-numeric characters
+                textValue = textValue.replaceAll("[^0-9]", "");
+                if (!textValue.isEmpty()) {
+                    return Integer.parseInt(textValue);
+                }
+            }
+
+            return defaultValue;
+
+        } catch (Exception e) {
+            System.out.println("WARNING: Failed to extract int field '" + fieldName + "', using default: " + defaultValue);
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Helper method to find character with flexible matching
+     */
+    private FilmCharacters findCharacterForCasting(String characterName, Map<String, FilmCharacters> characterMap) {
+        if (characterName == null || characterName.trim().isEmpty()) {
+            return null;
+        }
+
+        String cleanName = characterName.trim();
+
+        // Try exact match first
+        FilmCharacters character = characterMap.get(cleanName);
+        if (character != null) {
+            return character;
+        }
+
+        // Try normalized match
+        character = characterMap.get(cleanName.toLowerCase().trim());
+        if (character != null) {
+            return character;
+        }
+
+        // Try partial matching
+        String normalizedSearch = cleanName.toLowerCase().trim();
+        for (Map.Entry<String, FilmCharacters> entry : characterMap.entrySet()) {
+            String mapKey = entry.getKey().toLowerCase().trim();
+            if (mapKey.contains(normalizedSearch) || normalizedSearch.contains(mapKey)) {
+                return entry.getValue();
+            }
+        }
+
+        return null; // Character not found
     }
 }

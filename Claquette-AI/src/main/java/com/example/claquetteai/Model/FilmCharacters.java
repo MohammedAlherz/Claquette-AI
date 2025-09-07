@@ -51,7 +51,6 @@ public class FilmCharacters {
     @Column
     private LocalDateTime updatedAt;
 
-    // CRITICAL FIX: Specify the mappedBy correctly and add cascade
     @ManyToMany(mappedBy = "characters", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<Scene> scenes;
@@ -59,4 +58,9 @@ public class FilmCharacters {
     @ManyToOne
     @JsonIgnore
     private Project project;
+
+    // CORRECTED: One-to-Many relationship with CastingRecommendation
+    @OneToMany(mappedBy = "character", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<CastingRecommendation> castingRecommendations;
 }

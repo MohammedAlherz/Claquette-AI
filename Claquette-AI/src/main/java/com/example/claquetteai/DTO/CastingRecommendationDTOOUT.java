@@ -14,4 +14,6 @@ public class CastingRecommendationDTOOUT {
     private Integer age;
     private Double matchScore;
     private String profile;
+    private String characterName; // NEW: Character name from linked character
+    private String reasoning; // NEW: Why this actor was recommended
 }

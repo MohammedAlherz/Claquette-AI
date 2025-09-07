@@ -17,8 +17,8 @@ public class CharactersController {
     private final CharacterService characterService;
 
     @GetMapping("/{userId}/character-count")
-    public ResponseEntity<ApiResponse> characterCount(@PathVariable Integer userId){
-        return ResponseEntity.ok(new ApiResponse(characterService.charactersCount(userId).toString()));
+    public ResponseEntity<?> characterCount(@PathVariable Integer userId){
+        return ResponseEntity.ok(characterService.charactersCount(userId));
     }
 
 

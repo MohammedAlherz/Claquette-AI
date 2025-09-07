@@ -32,7 +32,7 @@ public class CompanySubscription {
     private LocalDateTime endDate;
 
     @NotEmpty(message = "Status cannot be null")
-    @Pattern(regexp = "ACTIVE|EXPIRED|CANCELLED|PENDING",
+    @Pattern(regexp = "ACTIVE|EXPIRED|CANCELLED|PENDING|FREE_PLAN",
             message = "Status must be: ACTIVE, EXPIRED, CANCELLED, or PENDING")
     @Column(columnDefinition = "varchar(20) not null")
     private String status;

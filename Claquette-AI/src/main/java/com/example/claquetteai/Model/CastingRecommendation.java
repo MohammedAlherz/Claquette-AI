@@ -1,6 +1,5 @@
 package com.example.claquetteai.Model;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -20,11 +19,6 @@ public class CastingRecommendation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotEmpty(message = "FilmCharacters name cannot be null")
-    @Size(min = 1, max = 100, message = "FilmCharacters name should be between 1 and 100 characters")
-    @Column(columnDefinition = "varchar(100) not null")
-    private String characterName;
-
     @NotEmpty(message = "Recommended actor name cannot be null")
     @Size(min = 1, max = 100, message = "Recommended actor name should be between 1 and 100 characters")
     @Column(columnDefinition = "varchar(100) not null")
@@ -43,12 +37,23 @@ public class CastingRecommendation {
     @Column(columnDefinition = "int not null")
     private Integer age;
 
+    // NEW: Add priority/ranking for multiple recommendations
+    @Column(columnDefinition = "int default 1")
+    private Integer priority = 1; // 1 = highest priority
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt;
+
     @UpdateTimestamp
     @Column
     private LocalDateTime updatedAt;
+
+    // CORRECTED: Many-to-One relationship with FilmCharacters
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "character_id", referencedColumnName = "id")
+    @JsonIgnore
+    private FilmCharacters character;
 
     @ManyToOne
     @JsonIgnore

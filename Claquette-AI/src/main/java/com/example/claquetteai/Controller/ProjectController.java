@@ -52,28 +52,28 @@ public class ProjectController {
     }
 
     @GetMapping("/{userId}/project-count")
-    public ResponseEntity<ApiResponse> projectsCount(@PathVariable Integer userId){
-        return ResponseEntity.ok(new ApiResponse(projectService.projectsCount(userId).toString()));
+    public ResponseEntity<?> projectsCount(@PathVariable Integer userId){
+        return ResponseEntity.ok(projectService.projectsCount(userId).toString());
     }
 
     @GetMapping("/{userId}/total-budget")
-    public ResponseEntity<ApiResponse> totalBudget(@PathVariable Integer userId){
-        return ResponseEntity.ok(new ApiResponse(projectService.getTotalBudget(userId).toString()));
+    public ResponseEntity<?> totalBudget(@PathVariable Integer userId){
+        return ResponseEntity.ok(projectService.getTotalBudget(userId).toString());
     }
 
     @GetMapping("/{userId}/project-characters")
-    public ResponseEntity<List<CharactersDTOOUT>> projectCharacters(@PathVariable Integer userId, @PathVariable Integer projectId){
+    public ResponseEntity<?> projectCharacters(@PathVariable Integer userId, @PathVariable Integer projectId){
         return ResponseEntity.ok(projectService.projectCharacters(userId, projectId));
     }
 
     @PostMapping("/{userId}/generate-poster/{projectId}")
-    public ResponseEntity<ApiResponse> generateAIPoster(@PathVariable Integer userId, @PathVariable Integer projectId) throws Exception {
+    public ResponseEntity<?> generateAIPoster(@PathVariable Integer userId, @PathVariable Integer projectId) throws Exception {
         projectService.generateAndAttachPoster(userId, projectId);
         return ResponseEntity.ok(new ApiResponse("poster generated successfully"));
     }
 
     @GetMapping(value = "/{userId}/project/{projectId}/poster.png", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> getPosterPng(@PathVariable Integer userId,@PathVariable Integer projectId) {
+    public ResponseEntity<?> getPosterPng(@PathVariable Integer userId,@PathVariable Integer projectId) {
         return projectService.getPosterPngResponse(userId, projectId);
     }
 

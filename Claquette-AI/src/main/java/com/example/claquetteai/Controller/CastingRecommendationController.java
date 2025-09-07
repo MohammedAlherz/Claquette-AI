@@ -19,12 +19,12 @@ public class CastingRecommendationController {
     private final CastingService castingService;
 
     @GetMapping("/{userId}/project/{projectId}")
-    public ResponseEntity<List<CastingRecommendationDTOOUT>> recommendedCast(@PathVariable Integer userId,@PathVariable Integer projectId){
+    public ResponseEntity<?> recommendedCast(@PathVariable Integer userId,@PathVariable Integer projectId){
         return ResponseEntity.ok(castingService.castingRecommendations(userId,projectId));
     }
 
     @GetMapping("/{userId}/project/{projectId}/character/{charId}")
-    public ResponseEntity<CastingRecommendationDTOOUT> recommendedInfo(@PathVariable Integer userId, @PathVariable Integer projectId, @PathVariable Integer charId){
+    public ResponseEntity<?> recommendedInfo(@PathVariable Integer userId, @PathVariable Integer projectId, @PathVariable Integer charId){
         return ResponseEntity.ok(castingService.personDetails(userId, projectId, charId));
     }
 }
