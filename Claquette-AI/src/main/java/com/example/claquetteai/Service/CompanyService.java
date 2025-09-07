@@ -29,9 +29,32 @@ public class CompanyService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final VerificationService verificationService;
-    private final VerificationEmailService emailService;
-    private final PasswordResetService passwordResetService;
-    private final JwtUtil jwtUtil;
+    private final  VerificationEmailService emailService;
+    private final  PasswordResetService passwordResetService;
+    private final JwtUtil  jwtUtil;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     @Transactional
@@ -53,14 +76,6 @@ public class CompanyService {
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
-
-
-
-
-
-
-
-
 
     public List<CompanyDTOOUT> getAllCompanies() {
         return companyRepository.findAll().stream()
@@ -182,11 +197,8 @@ public class CompanyService {
         if (user == null) throw new ApiException("user not found");
 
         byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read upload", e);
-        }
+        try { bytes = file.getBytes(); }
+        catch (IOException e) { throw new RuntimeException("Failed to read upload", e); }
 
         // sanity: ensure real image
         try (var in = new ByteArrayInputStream(bytes)) {
@@ -216,17 +228,13 @@ public class CompanyService {
         if (b64 == null || b64.isBlank()) return ResponseEntity.notFound().build();
 
         byte[] bytes;
-        try {
-            bytes = java.util.Base64.getDecoder().decode(b64);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(500).build();
-        }
+        try { bytes = java.util.Base64.getDecoder().decode(b64); }
+        catch (IllegalArgumentException e) { return ResponseEntity.status(500).build(); }
 
         MediaType mediaType = MediaType.IMAGE_PNG; // default
         if (u.getProfileImageContentType() != null) {
-            try {
-                mediaType = MediaType.parseMediaType(u.getProfileImageContentType());
-            } catch (Exception ignored) { /* keep default */ }
+            try { mediaType = MediaType.parseMediaType(u.getProfileImageContentType()); }
+            catch (Exception ignored) { /* keep default */ }
         }
 
         return ResponseEntity.ok()
@@ -234,7 +242,6 @@ public class CompanyService {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"user-" + userId + imageExt(mediaType) + "\"")
                 .body(bytes);
     }
-
     private static String imageExt(MediaType mt) {
         if (MediaType.IMAGE_JPEG.equals(mt)) return ".jpg";
         if (MediaType.valueOf("image/webp").equals(mt)) return ".webp";
