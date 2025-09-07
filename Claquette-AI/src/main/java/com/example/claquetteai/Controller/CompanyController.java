@@ -17,6 +17,24 @@ public class CompanyController {
 
     private final CompanyService companyService;
 
+
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestParam String token,
+                                           @RequestParam String newPassword) {
+        companyService.resetPasswordWithToken(token, newPassword);
+        return ResponseEntity.ok(new ApiResponse("✅ Password reset successfully"));
+    }
+
+
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        companyService.forgotPassword(email);
+        return ResponseEntity.ok("📧 Reset password email sent successfully (fake link)");
+    }
+
+
     @GetMapping("/companies")
     public ResponseEntity<?> getAllCompanies() {
         return ResponseEntity.ok().body(companyService.getAllCompanies());
