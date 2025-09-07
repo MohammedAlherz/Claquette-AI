@@ -43,9 +43,17 @@ public class CompanySubscriptionController {
         return ResponseEntity.ok(new ApiResponse("Subscription has Cancelled successfully"));
     }
 
+    @PutMapping("/{companyId}/subscriptions/renew")
+    public ResponseEntity<?> renewSubscription(
+            @PathVariable Integer companyId,
+            @RequestBody Payment payment
+    ){
+        return ResponseEntity.ok(subscriptionService.renewSubscription(companyId,payment));
+    }
 
     @GetMapping("/{userId}/history-payment")
     public ResponseEntity<?> historySubscriptions(@PathVariable Integer userId){
         return ResponseEntity.ok(subscriptionService.historyOfSubscription(userId));
     }
+
 }
