@@ -1,8 +1,14 @@
 package com.example.claquetteai.Service;
 
+import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.Model.Episode;
+import com.example.claquetteai.Model.FilmCharacters;
 import com.example.claquetteai.Model.Project;
+import com.example.claquetteai.Model.User;
+import com.example.claquetteai.Repository.CharacterRepository;
 import com.example.claquetteai.Repository.EpisodeRepository;
+import com.example.claquetteai.Repository.ProjectRepository;
+import com.example.claquetteai.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +21,9 @@ public class EpisodeService {
     private final JsonExtractor jsonExtractor;
     private final PromptBuilderService promptBuilderService;
     private final AiClientService aiClientService;
+    private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final CharacterRepository characterRepository;
 
     // UPDATED METHOD: AI Generation method with character consistency
     public Episode generateEpisodeWithScenes(Project project, int episodeNumber, String characterNames) throws Exception {
@@ -111,6 +120,36 @@ public class EpisodeService {
         // For example: verify that the user owns the project
         List<Episode> episodes = episodeRepository.findByProjectId(projectId);
         return episodes;
+    }
+
+    public void generateEpisodes(Integer userId, Integer projectId) throws Exception {
+        User user = userRepository.findUserById(userId);
+        if (user == null){
+            throw new ApiException("user not found");
+        }
+        if (!user.getCompany().getIsSubscribed()){
+            throw new ApiException("you must subscribe to generate one by one");
+        }
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null){
+            throw new ApiException("project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)){
+            throw new ApiException("not authorized");
+        }
+        if(project.getProjectType().equals("FILM")){
+            throw new ApiException("Project is not Series");
+        }
+
+        List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
+
+        if (characters.isEmpty()) {
+            throw new ApiException("No characters found for this project. Please generate characters first.");
+        }
+
+        for (FilmCharacters f : characters) {
+            generateEpisodeWithScenes(project, project.getEpisodeCount(), f.getName());
+        }
     }
 
 }

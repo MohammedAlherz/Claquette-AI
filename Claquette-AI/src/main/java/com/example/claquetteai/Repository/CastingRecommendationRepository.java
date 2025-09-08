@@ -15,4 +15,6 @@ public interface CastingRecommendationRepository extends JpaRepository<CastingRe
     CastingRecommendation findCastingRecommendationByProjectAndId(Project project, Integer id);
 
     List<CastingRecommendation> findCastingRecommendationByCharacter(FilmCharacters character);
+
+    CastingRecommendation findCastingRecommendationById(Integer id);
 }

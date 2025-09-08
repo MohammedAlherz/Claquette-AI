@@ -1,20 +1,68 @@
 package com.example.claquetteai.Service;
 
-import com.example.claquetteai.Model.Film;
-import com.example.claquetteai.Model.Project;
-import com.example.claquetteai.Repository.FilmRepository;
+import com.example.claquetteai.Api.ApiException;
+import com.example.claquetteai.Model.*;
+import com.example.claquetteai.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class FilmService {
+
     private final FilmRepository filmRepository;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
+    private final CharacterRepository characterRepository;
     private final JsonExtractor jsonExtractor;
     private final PromptBuilderService promptBuilderService;
     private final AiClientService aiClientService;
 
-    // UPDATED METHOD: AI Generation method with character consistency
+    // Main film generation method (similar to episode generation pattern)
+    public void generateFilm(Integer userId, Integer projectId) throws Exception {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+        if (!user.getCompany().getIsSubscribed()) {
+            throw new ApiException("You must subscribe to generate films");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized");
+        }
+
+        if(project.getProjectType().equals("SERIES")){
+            throw new ApiException("Project is not Film");
+        }
+
+        // Get characters for the project
+        List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
+        if (characters.isEmpty()) {
+            throw new ApiException("No characters found for this project. Please generate characters first.");
+        }
+
+        // Build character names string
+        StringBuilder characterNames = new StringBuilder();
+        for (int i = 0; i < characters.size(); i++) {
+            characterNames.append(characters.get(i).getName());
+            if (i < characters.size() - 1) {
+                characterNames.append(", ");
+            }
+        }
+
+        // Generate film with scenes using character consistency
+        generateFilmWithScenes(project, characterNames.toString());
+    }
+
+    // Core film generation method with character consistency
     public Film generateFilmWithScenes(Project project, String characterNames) throws Exception {
         System.out.println("=== GENERATING FILM ===");
         System.out.println("Project: " + project.getTitle());
@@ -64,7 +112,53 @@ public class FilmService {
         return savedFilm;
     }
 
-    // UTILITY METHOD: Validate film character consistency
+    // Get project film with authorization
+    public Film getProjectFilm(Integer userId, Integer projectId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized");
+        }
+
+        Film film = filmRepository.findFilmByProject(project);
+        if (film == null) {
+            throw new ApiException("No film found for this project");
+        }
+
+        return film;
+    }
+
+    // Get film scenes with authorization
+    public Set<Scene> getFilmScenes(Integer userId, Integer projectId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized");
+        }
+
+        Film film = filmRepository.findFilmByProject(project);
+        if (film == null) {
+            throw new ApiException("No film found for this project");
+        }
+
+        return film.getScenes();
+    }
+
+    // Utility method to validate film character consistency
     public void validateFilmCharacterConsistency(Film film, String expectedCharacterNames) {
         if (film.getScenes() == null || expectedCharacterNames == null) {
             return;
@@ -97,5 +191,17 @@ public class FilmService {
         }
         System.out.println("=== VALIDATION COMPLETE ===");
     }
+
+    // Get all films for a user (for dashboard/analytics)
+    public List<Film> getUserFilms(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        List<Project> projects = projectRepository.findProjectsByCompany_User_Id(userId);
+        return filmRepository.findFilmsByProjectIn(projects);
+    }
+
 
 }

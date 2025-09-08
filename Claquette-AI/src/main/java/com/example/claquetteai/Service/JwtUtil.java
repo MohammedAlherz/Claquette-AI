@@ -15,6 +15,9 @@ public class JwtUtil {
     private final String SECRET_KEY = "super-secret-key-123456789012345";
 
     private final long EXPIRATION = 15 * 60 * 1000;
+//    private final String SECRET_KEY = "super-secret-key-123456789012345";
+
+//    private final long EXPIRATION = 15 * 60 * 1000;
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));

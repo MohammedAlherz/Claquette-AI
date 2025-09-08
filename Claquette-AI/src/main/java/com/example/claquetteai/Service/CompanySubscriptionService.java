@@ -126,6 +126,48 @@ public class CompanySubscriptionService {
 
         return paymentService.processPayment(existingPayment, subscription.getId());
     }
+
+    // Activate cancelled subscription
+    @Transactional
+    public void activateSubscription(Integer userId, Integer subscriptionId) {
+        User user = userRepository.findUserById(userId);
+        CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
+
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        if (subscription == null) {
+            throw new ApiException("Subscription not found with id " + subscriptionId);
+        }
+
+        if (!subscription.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not Authorized");
+        }
+
+        // Check if subscription is cancelled (can only activate cancelled subscriptions)
+        if (!"CANCELLED".equals(subscription.getStatus())) {
+            throw new ApiException("Subscription is not cancelled. Only cancelled subscriptions can be activated.");
+        }
+
+        // Check if subscription hasn't expired
+        if (subscription.getEndDate() != null && subscription.getEndDate().isBefore(LocalDateTime.now())) {
+            throw new ApiException("Subscription has expired. Please renew instead of activating.");
+        }
+
+        // Activate the subscription
+        if ("FREE".equals(subscription.getPlanType())) {
+            subscription.setStatus("FREE_PLAN");
+            subscription.getCompany().setIsSubscribed(false);
+        } else {
+            subscription.setStatus("ACTIVE");
+            subscription.getCompany().setIsSubscribed(true);
+        }
+
+        subscriptionRepository.save(subscription);
+        companyRepository.save(subscription.getCompany());
+    }
+
     public void updateSubscriptionStatus(Integer userId, Integer subscriptionId, String status) {
         User user = userRepository.findUserById(userId);
         CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
@@ -224,5 +266,72 @@ public class CompanySubscriptionService {
         return historySubscriptions;
     }
 
+    public Map<String, Object> getSubscriptionDashboard(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        Company company = companyRepository.findCompanyByUser(user);
+        if (company == null) {
+            throw new ApiException("Company not found for user");
+        }
+
+        Map<String, Object> dashboard = new HashMap<>();
+
+        // Current subscription info
+        CompanySubscription activeSubscription = company.getActiveSubscription();
+        if (activeSubscription != null) {
+            Map<String, Object> currentPlan = new HashMap<>();
+            currentPlan.put("planType", activeSubscription.getPlanType());
+            currentPlan.put("status", activeSubscription.getStatus());
+            currentPlan.put("monthlyPrice", activeSubscription.getMonthlyPrice());
+            currentPlan.put("startDate", activeSubscription.getStartDate());
+            currentPlan.put("endDate", activeSubscription.getEndDate());
+            currentPlan.put("nextBillingDate", activeSubscription.getNextBillingDate());
+            dashboard.put("currentSubscription", currentPlan);
+        } else {
+            dashboard.put("currentSubscription", null);
+        }
+
+        // Subscription history
+        List<HistorySubscription> history = historyOfSubscription(userId);
+        dashboard.put("subscriptionHistory", history);
+
+        // Payment statistics
+        List<CompanySubscription> allSubscriptions = subscriptionRepository.findCompanySubscriptionsByCompany_User(user);
+        Double totalSpent = allSubscriptions.stream()
+                .filter(sub -> !"FREE".equals(sub.getPlanType()))
+                .mapToDouble(CompanySubscription::getMonthlyPrice)
+                .sum();
+
+        Map<String, Object> paymentStats = new HashMap<>();
+        paymentStats.put("totalAmountSpent", totalSpent);
+        paymentStats.put("totalPayments", allSubscriptions.size());
+        paymentStats.put("activePayments", allSubscriptions.stream()
+                .filter(sub -> "ACTIVE".equals(sub.getStatus()))
+                .count());
+
+        dashboard.put("paymentStatistics", paymentStats);
+
+        // Subscription alerts
+        List<String> alerts = new ArrayList<>();
+        if (activeSubscription != null) {
+            if ("EXPIRED".equals(activeSubscription.getStatus())) {
+                alerts.add("انتهت صلاحية اشتراكك. يرجى التجديد للاستمرار في استخدام الخدمات المتقدمة");
+            } else if (activeSubscription.getNextBillingDate() != null) {
+                LocalDate nextBilling = activeSubscription.getNextBillingDate().toLocalDate();
+                LocalDate today = LocalDate.now();
+                long daysUntilBilling = java.time.temporal.ChronoUnit.DAYS.between(today, nextBilling);
+
+                if (daysUntilBilling <= 3 && daysUntilBilling >= 0) {
+                    alerts.add("سيتم تجديد اشتراكك خلال " + daysUntilBilling + " أيام");
+                }
+            }
+        }
+        dashboard.put("alerts", alerts);
+
+        return dashboard;
+    }
 
 }

@@ -1,14 +1,11 @@
 package com.example.claquetteai.Controller;
 
+import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Service.CastingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/casting-recommendation")
@@ -16,13 +13,16 @@ import java.util.List;
 public class CastingRecommendationController {
     private final CastingService castingService;
 
-    @GetMapping("/{userId}/project/{projectId}")
-    public ResponseEntity<?> recommendedCast(@PathVariable Integer userId,@PathVariable Integer projectId){
-        return ResponseEntity.ok(castingService.castingRecommendations(userId,projectId));
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<?> recommendedCast(@AuthenticationPrincipal User user,
+                                             @PathVariable Integer projectId) {
+        return ResponseEntity.ok(castingService.castingRecommendations(user.getId(), projectId));
     }
 
-    @GetMapping("/{userId}/project/{projectId}/character/{charId}")
-    public ResponseEntity<?> recommendedInfo(@PathVariable Integer userId, @PathVariable Integer projectId, @PathVariable Integer charId){
-        return ResponseEntity.ok(castingService.personDetails(userId, projectId, charId));
+    @GetMapping("/project/{projectId}/character/{charId}")
+    public ResponseEntity<?> recommendedInfo(@AuthenticationPrincipal User user,
+                                             @PathVariable Integer projectId,
+                                             @PathVariable Integer charId) {
+        return ResponseEntity.ok(castingService.personDetails(user.getId(), projectId, charId));
     }
 }

@@ -1,0 +1,111 @@
+package com.example.claquetteai.Service;
+
+import com.example.claquetteai.Api.ApiException;
+import com.example.claquetteai.DTO.CompanyDTOIN;
+import com.example.claquetteai.DTO.WatheqValidationResponse;
+import com.example.claquetteai.Model.Company;
+import com.example.claquetteai.Model.User;
+import com.example.claquetteai.Repository.CompanyRepository;
+import com.example.claquetteai.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class WatheqService {
+
+    private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
+    private final VerificationService verificationService;
+    private final VerificationEmailService emailService;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Value("${watheq.api.key}")
+    private String wathqApiKey;
+
+    /**
+     * Validate a commercial registration number with Watheq API
+     */
+    public void validateCommercialRegNo(CompanyDTOIN commercialRegNo) throws JsonProcessingException {
+
+
+        if (commercialRegNo == null || commercialRegNo.getCommercialRegNo().isEmpty()) {
+            throw new ApiException("Commercial registration number is required");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("apiKey", wathqApiKey);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        HttpEntity<Void> req = new HttpEntity<>(headers);
+
+        String url =
+                "https://api.wathq.sa/commercial-registration/fullinfo/" + commercialRegNo.getCommercialRegNo();
+
+        ResponseEntity<String> res = restTemplate.exchange(url, HttpMethod.GET, req, String.class);
+        JsonNode root = mapper.readTree(res.getBody());
+
+        String status = root.path("status").path("name").asText();
+        if (!"نشط".equalsIgnoreCase(status)) {
+            throw new ApiException("Commercial registration is not Active: " + status);
+        }
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+        String hasPassword = bCrypt.encode(commercialRegNo.getPassword());
+        // Create User
+        User user = new User();
+        user.setFullName(commercialRegNo.getFullName());
+        user.setEmail(commercialRegNo.getEmail());
+        user.setPassword(hasPassword);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setActiveAccount(false); // not verified yet
+        user.setRole("COMPANY");
+        User savedUser = userRepository.save(user);
+
+        // Create Company
+        Company company = new Company();
+        company.setName(commercialRegNo.getName());
+        company.setCommercialRegNo(commercialRegNo.getCommercialRegNo());
+        company.setUser(savedUser);
+        company.setCreatedAt(LocalDateTime.now());
+        company.setUpdatedAt(LocalDateTime.now());
+
+        companyRepository.save(company);
+
+
+        // ✅ Send email
+        String code = verificationService.generateCode(user.getEmail());
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
+    }
+
+    /**
+     * Mock response if validation is disabled
+     */
+    private WatheqValidationResponse createMockValidResponse(String regNo) {
+        return WatheqValidationResponse.builder()
+                .commercialRegNo(regNo)
+                .valid(true)
+                .active(true)
+                .status("active")
+                .statusNameAr("السجل التجاري قائم")
+                .statusNameEn("Commercial registration is active")
+                .message("✅ Mock validation - Watheq disabled")
+                .source("MOCK")
+                .validatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
+                .build();
+    }
+}
