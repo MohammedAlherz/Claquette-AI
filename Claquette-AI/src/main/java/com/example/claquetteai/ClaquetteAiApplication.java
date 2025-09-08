@@ -12,4 +12,6 @@ public class ClaquetteAiApplication {
         SpringApplication.run(ClaquetteAiApplication.class, args);
     }
 
+
+
 }

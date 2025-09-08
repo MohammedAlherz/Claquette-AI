@@ -3,6 +3,7 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.DTO.CompanyDTOOUT;
+import com.example.claquetteai.DTO.WatheqValidationResponse;
 import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
@@ -30,9 +31,31 @@ public class CompanyService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final VerificationService verificationService;
-    private final VerificationEmailService emailService;
-    private final PasswordResetService passwordResetService;
-    private final JwtUtil jwtUtil;
+    private final  VerificationEmailService emailService;
+    private final  PasswordResetService passwordResetService;
+    private final JwtUtil  jwtUtil;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     @Transactional
@@ -247,6 +270,7 @@ public class CompanyService {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"user-" + userId + imageExt(mediaType) + "\"")
                 .body(bytes);
     }
+
     private static String imageExt(MediaType mt) {
         if (MediaType.IMAGE_JPEG.equals(mt)) return ".jpg";
         if (MediaType.valueOf("image/webp").equals(mt)) return ".webp";

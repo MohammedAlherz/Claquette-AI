@@ -301,7 +301,7 @@ public class PromptBuilderService {
           ]
         }
 
-        Suggest 2-3 suitable Saudi actors (born after 1980 and they has new movies or series in saudi arabia tv 2022+) for each main character.
+        Suggest 2-3 suitable Saudi actors (born after 1980 and they has new movies or series in saudi arabia tv as shahid or mbc1 or mbc drama 2022+) for each main character.
         Include detailed reasoning for each casting choice.
         """.formatted(projectInfo);
     }
