@@ -1,18 +1,17 @@
 package com.example.claquetteai.Controller;
 
 import com.example.claquetteai.Api.ApiResponse;
-import com.example.claquetteai.DTO.CharactersDTOOUT;
-import com.example.claquetteai.Model.FilmCharacters;
 import com.example.claquetteai.Model.Project;
+import com.example.claquetteai.Model.User;  // Your User entity
 import com.example.claquetteai.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,88 +20,107 @@ import java.util.Map;
 public class ProjectController {
     private final ProjectService projectService;
 
+    // ADMIN only - get all projects in system
     @GetMapping("/get")
     public ResponseEntity<?> getAllProjects() {
         return ResponseEntity.ok().body(projectService.getAllProjects());
     }
 
-    @PostMapping("/add/company/{companyId}")
-    public ResponseEntity<?> addProject(@RequestBody @Valid Project project,
-                                        @PathVariable Integer companyId) {
-        projectService.addProject(project, companyId);
+    // COMPANY only - add project for authenticated company
+    @PostMapping("/add")
+    public ResponseEntity<?> addProject(@AuthenticationPrincipal User user,
+                                        @RequestBody @Valid Project project) {
+        // Use authenticated user's company ID instead of path variable
+        projectService.addProject(project, user.getCompany().getId());
         return ResponseEntity.ok().body(new ApiResponse("Project has been added successfully"));
     }
 
-    @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateProject(@PathVariable Integer id,
+    // COMPANY only - update their own projects
+    @PutMapping("/update/{projectId}")
+    public ResponseEntity<?> updateProject(@AuthenticationPrincipal User user,
+                                           @PathVariable Integer projectId,
                                            @RequestBody @Valid Project updatedProject) {
-        projectService.updateProject(id, updatedProject);
+        projectService.updateProject(user.getId(), projectId,updatedProject);
         return ResponseEntity.ok().body(new ApiResponse("Project has been updated successfully"));
     }
 
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteProject(@PathVariable Integer id) {
-        projectService.deleteProject(id);
+    // COMPANY only - delete their own projects
+    @DeleteMapping("/delete/{projectId}")
+    public ResponseEntity<?> deleteProject(@AuthenticationPrincipal User user,
+                                           @PathVariable Integer projectId) {
+        projectService.deleteProject(user.getId(), projectId);
         return ResponseEntity.ok().body(new ApiResponse("Project has been deleted successfully"));
     }
 
-
-    @GetMapping("/{userId}/my-projects")
-    public ResponseEntity<?> myProjects(@PathVariable Integer userId) {
-        return ResponseEntity.ok(projectService.getProjectById(userId));
+    // COMPANY only - get authenticated user's projects
+    @GetMapping("/my-projects")
+    public ResponseEntity<?> myProjects(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(projectService.getProjectById(user.getId()));
     }
 
-    @GetMapping("/{userId}/project-count")
-    public ResponseEntity<?> projectsCount(@PathVariable Integer userId) {
-        return ResponseEntity.ok(projectService.projectsCount(userId).toString());
+    // COMPANY only - get authenticated user's project count
+    @GetMapping("/project-count")
+    public ResponseEntity<?> projectsCount(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(projectService.projectsCount(user.getId()).toString());
     }
 
-    @GetMapping("/{userId}/total-budget")
-    public ResponseEntity<?> totalBudget(@PathVariable Integer userId) {
-        return ResponseEntity.ok(projectService.getTotalBudget(userId).toString());
+    // COMPANY only - get authenticated user's total budget
+    @GetMapping("/total-budget")
+    public ResponseEntity<?> totalBudget(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(projectService.getTotalBudget(user.getId()).toString());
     }
 
-    @GetMapping("/{userId}/project-characters")
-    public ResponseEntity<?> projectCharacters(@PathVariable Integer userId, @PathVariable Integer projectId) {
-        return ResponseEntity.ok(projectService.projectCharacters(userId, projectId));
+    // COMPANY only - get project characters (with authorization check)
+    @GetMapping("/project/{projectId}/characters")
+    public ResponseEntity<?> projectCharacters(@AuthenticationPrincipal User user,
+                                               @PathVariable Integer projectId) {
+        return ResponseEntity.ok(projectService.projectCharacters(user.getId(), projectId));
     }
 
-    @PostMapping("/{userId}/generate-poster/{projectId}")
-    public ResponseEntity<?> generateAIPoster(@PathVariable Integer userId, @PathVariable Integer projectId) throws Exception {
-        projectService.generateAndAttachPoster(userId, projectId);
+    // COMPANY only - generate poster for their project
+    @PostMapping("/generate-poster/{projectId}")
+    public ResponseEntity<?> generateAIPoster(@AuthenticationPrincipal User user,
+                                              @PathVariable Integer projectId) throws Exception {
+        projectService.generateAndAttachPoster(user.getId(), projectId);
         return ResponseEntity.ok(new ApiResponse("poster generated successfully"));
     }
 
-    @GetMapping(value = "/{userId}/project/{projectId}/poster.png", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<?> getPosterPng(@PathVariable Integer userId, @PathVariable Integer projectId) {
-        return projectService.getPosterPngResponse(userId, projectId);
+    // COMPANY only - get poster for their project
+    @GetMapping(value = "/{projectId}/poster.png", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<?> getPosterPng(@AuthenticationPrincipal User user,
+                                          @PathVariable Integer projectId) {
+        return projectService.getPosterPngResponse(user.getId(), projectId);
     }
 
-    @PutMapping("/{userId}/project/{projectId}/poster")
-    public ResponseEntity<?> uploadPoster(@PathVariable Integer userId, @PathVariable Integer projectId, @RequestParam("file") MultipartFile file) {
-        projectService.uploadPoster(userId, projectId, file);
+    // COMPANY only - upload poster for their project
+    @PutMapping("/{projectId}/poster")
+    public ResponseEntity<?> uploadPoster(@AuthenticationPrincipal User user,
+                                          @PathVariable Integer projectId,
+                                          @RequestParam("file") MultipartFile file) {
+        projectService.uploadPoster(user.getId(), projectId, file);
         return ResponseEntity.ok(new ApiResponse("poster uploaded successfully"));
     }
 
-    @GetMapping("/{userId}/dashboard")
-    public ResponseEntity<?> getDashboardSummary(@PathVariable Integer userId) {
-        Map<String, Object> dashboardData = projectService.getDashboardSummary(userId);
+    // COMPANY only - get dashboard for authenticated user
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboardSummary(@AuthenticationPrincipal User user) {
+        Map<String, Object> dashboardData = projectService.getDashboardSummary(user.getId());
         return ResponseEntity.ok(dashboardData);
     }
 
-    @GetMapping("/{userId}/content/statistics")
-    public ResponseEntity<?> getContentStats(@PathVariable Integer userId) {
-        Map<String, Object> contentStats = projectService.getContentStats(userId);
+    // COMPANY only - get content stats for authenticated user
+    @GetMapping("/content/statistics")
+    public ResponseEntity<?> getContentStats(@AuthenticationPrincipal User user) {
+        Map<String, Object> contentStats = projectService.getContentStats(user.getId());
         return ResponseEntity.ok(contentStats);
     }
 
+    // COMPANY only - update status of their project
     @PutMapping("/{projectId}/status/{status}")
-    public ResponseEntity<ApiResponse> updateProjectStatus(
-            @PathVariable Integer projectId,
-            @PathVariable String status,
-            @RequestParam Integer userId) {
-
-        projectService.updateProjectStatus(userId, projectId, status);
+    public ResponseEntity<ApiResponse> updateProjectStatus(@AuthenticationPrincipal User user,
+                                                           @PathVariable Integer projectId,
+                                                           @PathVariable String status) {
+        projectService.updateProjectStatus(user.getId(), projectId, status);
         return ResponseEntity.ok(new ApiResponse("Project status updated successfully"));
     }
 }

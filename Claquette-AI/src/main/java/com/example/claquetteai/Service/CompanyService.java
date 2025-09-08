@@ -8,12 +8,12 @@ import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
 import com.example.claquetteai.Repository.UserRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -67,6 +67,8 @@ public class CompanyService {
 
     @Transactional
     public void resetPasswordWithToken(String token, String newPassword) {
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+        String hasPassword = bCrypt.encode(newPassword);
         if (!jwtUtil.validateToken(token)) {
             throw new ApiException("❌ Invalid or expired token");
         }
@@ -75,7 +77,7 @@ public class CompanyService {
         User user = userRepository.findUserByEmail(email);
         if (user == null) throw new ApiException("User not found");
 
-        user.setPassword(newPassword);
+        user.setPassword(hasPassword);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
@@ -91,6 +93,33 @@ public class CompanyService {
         // ✅ Validate CR
         watheqService.validateCommercialRegNo(dto);
 
+    public void registerCompanyWithVerification(CompanyDTOIN dto) {
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+        String hasPassword = bCrypt.encode(dto.getPassword());
+        // Create User
+        User user = new User();
+        user.setFullName(dto.getFullName());
+        user.setEmail(dto.getEmail());
+        user.setPassword(hasPassword);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setActiveAccount(false); // not verified yet
+        user.setRole("COMPANY");
+        User savedUser = userRepository.save(user);
+
+        // Create Company
+        Company company = new Company();
+        company.setName(dto.getName());
+        company.setCommercialRegNo(dto.getCommercialRegNo());
+        company.setUser(savedUser);
+        company.setCreatedAt(LocalDateTime.now());
+        company.setUpdatedAt(LocalDateTime.now());
+
+        companyRepository.save(company);
+
+        // 🔑 Generate and send code
+        String code = verificationService.generateCode(user.getEmail());
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
 
     @Transactional
@@ -127,26 +156,49 @@ public class CompanyService {
     }
 
 
-    public void updateCompany(Integer id, CompanyDTOIN dto) {
-        Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ApiException("Company not found with id " + id));
-        User user = company.getUser();
+    public void updateOwnCompany(Integer userId, CompanyDTOIN dto) {
+        // Find the user by ID
+        User authenticatedUser = userRepository.findUserById(userId);
+        if (authenticatedUser == null) {
+            throw new ApiException("User not found with id " + userId);
+        }
+
+        // Get the user's company
+        Company company = authenticatedUser.getCompany();
+        if (company == null) {
+            throw new ApiException("No company associated with this user");
+        }
+
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+
+        // Only hash password if it's provided
+        if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+            String hashedPassword = bCrypt.encode(dto.getPassword());
+            authenticatedUser.setPassword(hashedPassword);
+        }
+
         // Update User fields
-        user.setFullName(dto.getFullName());
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword()); // You should hash the password here
-        user.setUpdatedAt(LocalDateTime.now());
+        authenticatedUser.setFullName(dto.getFullName());
+        authenticatedUser.setEmail(dto.getEmail());
+        authenticatedUser.setUpdatedAt(LocalDateTime.now());
+
         // Update Company fields
         company.setName(dto.getName());
         company.setCommercialRegNo(dto.getCommercialRegNo());
         company.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
+
+        // Save both entities
+        userRepository.save(authenticatedUser);
         companyRepository.save(company);
     }
+    public void deleteCompany(Integer userId,Integer id) {
+        User user = userRepository.findUserById(userId);
+        if(user == null){
+            throw new ApiException("User not found");
+        }
 
-    public void deleteCompany(Integer id) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ApiException("Company not found with id " + id));
+                .orElseThrow(() -> new ApiException("Company not found"));
         // This will also delete the user due to cascade relationship
         companyRepository.delete(company);
     }
@@ -224,6 +276,7 @@ public class CompanyService {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"user-" + userId + imageExt(mediaType) + "\"")
                 .body(bytes);
     }
+
     private static String imageExt(MediaType mt) {
         if (MediaType.IMAGE_JPEG.equals(mt)) return ".jpg";
         if (MediaType.valueOf("image/webp").equals(mt)) return ".webp";

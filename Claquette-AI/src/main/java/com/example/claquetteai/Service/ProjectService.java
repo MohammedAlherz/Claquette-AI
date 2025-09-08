@@ -54,14 +54,25 @@ public class ProjectService {
         }
 
         project.setCompany(company);
+        if(project.getProjectType().equals("FILM")){
+            project.setEpisodeCount(1);
+        }
         project.setStatus("IN_DEVELOPMENT");
         projectRepository.save(project);
     }
 
-    public void updateProject(Integer id, Project updatedProject) {
-        Project project = projectRepository.findProjectById(id);
+    public void updateProject(Integer userId,Integer projectId,Project updatedProject) {
+        User user = userRepository.findUserById(userId);
+        if(user == null){
+            throw new ApiException("User not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
         if (project == null) {
-            throw new ApiException("Project not found with id " + id);
+            throw new ApiException("Project not found");
+        }
+        if(!project.getCompany().getUser().equals(user)){
+            throw new ApiException("Not Authorized");
         }
 
         project.setTitle(updatedProject.getTitle());
@@ -74,15 +85,29 @@ public class ProjectService {
         project.setStatus(updatedProject.getStatus());
         project.setStartProjectDate(updatedProject.getStartProjectDate());
         project.setEndProjectDate(updatedProject.getEndProjectDate());
-
+        if(project.getProjectType().equals("FILM")){
+            project.setEpisodeCount(1);
+        }else{
+            project.setEpisodeCount(updatedProject.getEpisodeCount());
+        }
         projectRepository.save(project);
     }
 
-    public void deleteProject(Integer id) {
-        if (!projectRepository.existsById(id)) {
-            throw new ApiException("Project not found with id " + id);
+    public void deleteProject(Integer userId,Integer projectId) {
+        User user = userRepository.findUserById(userId);
+        if(user == null){
+            throw new ApiException("User not found");
         }
-        projectRepository.deleteById(id);
+        Project project = projectRepository.findProjectById(projectId);
+
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+
+        if(!project.getCompany().getUser().equals(user)){
+            throw new ApiException("Not Authorized");
+        }
+        projectRepository.delete(project);
     }
 
     private ProjectDTOOUT convertToDTO(Project project) {

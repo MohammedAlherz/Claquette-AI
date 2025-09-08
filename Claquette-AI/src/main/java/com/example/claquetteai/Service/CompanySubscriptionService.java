@@ -126,6 +126,48 @@ public class CompanySubscriptionService {
 
         return paymentService.processPayment(existingPayment, subscription.getId());
     }
+
+    // Activate cancelled subscription
+    @Transactional
+    public void activateSubscription(Integer userId, Integer subscriptionId) {
+        User user = userRepository.findUserById(userId);
+        CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
+
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        if (subscription == null) {
+            throw new ApiException("Subscription not found with id " + subscriptionId);
+        }
+
+        if (!subscription.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not Authorized");
+        }
+
+        // Check if subscription is cancelled (can only activate cancelled subscriptions)
+        if (!"CANCELLED".equals(subscription.getStatus())) {
+            throw new ApiException("Subscription is not cancelled. Only cancelled subscriptions can be activated.");
+        }
+
+        // Check if subscription hasn't expired
+        if (subscription.getEndDate() != null && subscription.getEndDate().isBefore(LocalDateTime.now())) {
+            throw new ApiException("Subscription has expired. Please renew instead of activating.");
+        }
+
+        // Activate the subscription
+        if ("FREE".equals(subscription.getPlanType())) {
+            subscription.setStatus("FREE_PLAN");
+            subscription.getCompany().setIsSubscribed(false);
+        } else {
+            subscription.setStatus("ACTIVE");
+            subscription.getCompany().setIsSubscribed(true);
+        }
+
+        subscriptionRepository.save(subscription);
+        companyRepository.save(subscription.getCompany());
+    }
+
     public void updateSubscriptionStatus(Integer userId, Integer subscriptionId, String status) {
         User user = userRepository.findUserById(userId);
         CompanySubscription subscription = subscriptionRepository.findCompanySubscriptionById(subscriptionId);
@@ -251,27 +293,6 @@ public class CompanySubscriptionService {
         } else {
             dashboard.put("currentSubscription", null);
         }
-
-        // Available plans
-        List<Map<String, Object>> availablePlans = new ArrayList<>();
-
-        // Free Plan
-        Map<String, Object> freePlan = new HashMap<>();
-        freePlan.put("planType", "FREE");
-        freePlan.put("price", 0.0);
-        freePlan.put("currency", "ر.س");
-        freePlan.put("features", List.of("إنشاء مشروع واحد", "شخصيات محدودة", "مشاهد محدودة"));
-        availablePlans.add(freePlan);
-
-        // Advanced Plan
-        Map<String, Object> advancedPlan = new HashMap<>();
-        advancedPlan.put("planType", "ADVANCED");
-        advancedPlan.put("price", ADVANCED_PRICE);
-        advancedPlan.put("currency", "ر.س");
-        advancedPlan.put("features", List.of("مشاريع غير محدودة", "شخصيات غير محدودة", "مشاهد غير محدودة", "دعم فني متقدم"));
-        availablePlans.add(advancedPlan);
-
-        dashboard.put("availablePlans", availablePlans);
 
         // Subscription history
         List<HistorySubscription> history = historyOfSubscription(userId);
