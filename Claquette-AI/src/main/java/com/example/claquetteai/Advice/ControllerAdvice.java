@@ -3,6 +3,8 @@ package com.example.claquetteai.Advice;
 import com.example.claquetteai.Api.ApiException;
 
 import com.example.claquetteai.Api.ApiResponse;
+import jakarta.validation.UnexpectedTypeException;
+import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.core.io.JsonEOFException;
 import jakarta.validation.UnexpectedTypeException;
 import org.springframework.http.HttpStatus;
@@ -94,6 +96,11 @@ public class ControllerAdvice {
         return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
     }
 
+    @ExceptionHandler(value = JsonEOFException.class)
+    public ResponseEntity<ApiResponse> JsonEOFException(JsonEOFException e){
+        return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(value = HttpClientErrorException.class)
     public ResponseEntity<ApiResponse> HttpClientErrorException(HttpClientErrorException HttpClientErrorException){
         return ResponseEntity.status(400).body(new ApiResponse(HttpClientErrorException.getMessage()));
@@ -127,10 +134,5 @@ public class ControllerAdvice {
     @ExceptionHandler(value = NullPointerException.class)
     public ResponseEntity<ApiResponse> NullPointerException (NullPointerException nullPointerException){
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(nullPointerException.getMessage()));
-    }
-
-    @ExceptionHandler(value = JsonEOFException.class)
-    public ResponseEntity<ApiResponse> JsonEOFException(JsonEOFException e){
-        return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
     }
 }
