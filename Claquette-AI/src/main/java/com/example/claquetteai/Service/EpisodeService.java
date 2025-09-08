@@ -137,7 +137,16 @@ public class EpisodeService {
         if (!project.getCompany().getUser().equals(user)){
             throw new ApiException("not authorized");
         }
+        if(project.getProjectType().equals("FILM")){
+            throw new ApiException("Project is not Series");
+        }
+
         List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
+
+        if (characters.isEmpty()) {
+            throw new ApiException("No characters found for this project. Please generate characters first.");
+        }
+
         for (FilmCharacters f : characters) {
             generateEpisodeWithScenes(project, project.getEpisodeCount(), f.getName());
         }

@@ -46,9 +46,9 @@ public class ConfigSecurity {
                         "/api/v1/subscription/get",
                         "/api/v1/project/get").hasAuthority("ADMIN")
 
-                // COMPANY only endpoints (main business operations)
+                // COMPANY only endpoints - Project Management
                 .requestMatchers("/api/v1/project/add",
-                        "/api/v1/project/update",
+                        "/api/v1/project/update/**",
                         "/api/v1/project/delete/**",
                         "/api/v1/project/my-projects",
                         "/api/v1/project/project-count",
@@ -61,23 +61,27 @@ public class ConfigSecurity {
                         "/api/v1/project/content/statistics",
                         "/api/v1/project/*/status/*").hasAuthority("COMPANY")
 
-                // AI and Content Management (COMPANY only)
+                // COMPANY only endpoints - AI and Content Generation
                 .requestMatchers("/api/v1/ai-interaction/**",
-                        "/api/v1/casting-recommendation/**",
                         "/api/v1/characters/**",
-                        "/api/v1/scene/**",
-                        "/api/v1/episode/**").hasAuthority("COMPANY")
+                        "/api/v1/episode/**",
+                        "/api/v1/film/**",
+                        "/api/v1/scene/**").hasAuthority("COMPANY")
 
-                // COMPANY subscription management
+                // COMPANY only endpoints - Casting and Recommendations
+                .requestMatchers("/api/v1/casting-recommendation/**",
+                        "/api/v1/cast-info/**").hasAuthority("COMPANY")
+
+                // COMPANY only endpoints - Subscription Management
                 .requestMatchers("/api/v1/subscription/add/**",
                         "/api/v1/subscription/update-status/**",
                         "/api/v1/subscription/cancel-subscription/**",
-                        "/api/v1/subscription/activate-subscription/{subscriptionId}",
+                        "/api/v1/subscription/activate-subscription/**",
                         "/api/v1/subscription/renew",
                         "/api/v1/subscription/history-payment",
                         "/api/v1/subscription/manage-subscription").hasAuthority("COMPANY")
 
-                // Payment endpoints (COMPANY only)
+                // COMPANY only endpoints - Payment Processing
                 .requestMatchers("/api/v1/pay/**").hasAuthority("COMPANY")
 
                 // Both ADMIN and COMPANY can access these

@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/characters")
@@ -20,10 +19,10 @@ public class CharactersController {
         return ResponseEntity.ok(characterService.charactersCount(user.getId()));
     }
 
-    @PostMapping("/{userId}/generate-characters/{projectId}")
-    public ResponseEntity<?> generateCharacters(@PathVariable Integer userId, @PathVariable Integer projectId) throws Exception {
-        characterService.generateCharacterOnly(userId, projectId);
-        return ResponseEntity.ok("character generated successfully");
+    @PostMapping("/generate-characters/{projectId}")
+    public ResponseEntity<?> generateCharacters(@AuthenticationPrincipal User user,
+                                                @PathVariable Integer projectId) throws Exception {
+        characterService.generateCharacterOnly(user.getId(), projectId);
+        return ResponseEntity.ok("Characters generated successfully");
     }
-
 }
