@@ -1,95 +1,89 @@
 package com.example.claquetteai.Service;
 
 import com.example.claquetteai.Api.ApiException;
+import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.DTO.WatheqValidationResponse;
+import com.example.claquetteai.Model.Company;
+import com.example.claquetteai.Model.User;
+import com.example.claquetteai.Repository.CompanyRepository;
+import com.example.claquetteai.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
+import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WatheqService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
+    private final VerificationService verificationService;
+    private final VerificationEmailService emailService;
 
-    @Value("${watheq.api.base-url:https://api.wathq.sa/sandbox/commercial-registration}")
-    private String baseUrl;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${watheq.api.key}")
-    private String apiKey;
-
-    @Value("${watheq.validation.enabled:true}")
-    private boolean validationEnabled;
+//    @Value("${wathq.api.key}")
+    private String wathqApiKey = "LujF9fmxOPxr7BQt68QclyeGgAxGFliI";
 
     /**
      * Validate a commercial registration number with Watheq API
      */
-    public WatheqValidationResponse validateCommercialRegNo(String commercialRegNo) {
-        if (!validationEnabled) {
-            log.warn("⚠️ Watheq validation disabled → returning mock response");
-            return createMockValidResponse(commercialRegNo);
-        }
+    public void validateCommercialRegNo(CompanyDTOIN commercialRegNo) throws JsonProcessingException {
 
-        if (commercialRegNo == null || commercialRegNo.trim().isEmpty()) {
+
+        if (commercialRegNo == null || commercialRegNo.getCommercialRegNo().isEmpty()) {
             throw new ApiException("Commercial registration number is required");
         }
 
-        try {
-            WebClient client = webClientBuilder
-                    .baseUrl(baseUrl)
-                    .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                    .defaultHeader("THIQAH-API-ApiMsgRef", UUID.randomUUID().toString())
-                    .defaultHeader("THIQAH-API-ClientMsgRef", "ClaquetteAI-" + System.currentTimeMillis())
-                    .defaultHeader("apiKey", apiKey)
-                    .build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("apiKey", wathqApiKey);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        HttpEntity<Void> req = new HttpEntity<>(headers);
 
-            // ✅ استقبل الـ Response الخام من API
-            WatheqValidationResponse rawResponse = client.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/status/{id}")
-                            .queryParam("language", "ar")
-                            .build(commercialRegNo))
-                    .retrieve()
-                    .bodyToMono(WatheqValidationResponse.class)
-                    .doOnError(e -> log.error("❌ Watheq API error: {}", e.getMessage()))
-                    .onErrorResume(e -> Mono.error(new ApiException("Watheq service unavailable")))
-                    .block();
+        String url =
+                "https://api.wathq.sa/commercial-registration/fullinfo/" + commercialRegNo.getCommercialRegNo();
 
-            // ✅ Mapping للـ Response الخاص بنا
-            if (rawResponse != null) {
-                boolean isActive = "نشط".equalsIgnoreCase(rawResponse.getStatus()) ||
-                        "نشط".equalsIgnoreCase(rawResponse.getStatusNameAr());
+        ResponseEntity<String> res = restTemplate.exchange(url, HttpMethod.GET, req, String.class);
+        JsonNode root = mapper.readTree(res.getBody());
 
-                return WatheqValidationResponse.builder()
-                        .commercialRegNo(commercialRegNo)
-                        .id(rawResponse.getId())
-                        .status(rawResponse.getStatus() != null ? rawResponse.getStatus() : rawResponse.getName())
-                        .statusNameAr(rawResponse.getStatusNameAr() != null ? rawResponse.getStatusNameAr() : rawResponse.getName())
-                        .statusNameEn(isActive ? "Active" : "Inactive")
-                        .valid(isActive)
-                        .active(isActive)
-                        .message(isActive ? "CR is active" : "CR is inactive")
-                        .source("WATHIQ")
-                        .validatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
-                        .build();
-            } else {
-                throw new ApiException("Watheq response is empty");
-            }
-
-        } catch (Exception e) {
-            log.error("❌ Unexpected error while validating CRN {}: {}", commercialRegNo, e.getMessage());
-            throw new ApiException("Failed to validate commercial registration: " + e.getMessage());
+        String status = root.path("status").path("name").asText();
+        if (!"نشط".equalsIgnoreCase(status)) {
+            throw new ApiException("Commercial registration is not Active: " + status);
         }
+        // ✅ Create User with hashed password
+        User user = new User();
+        user.setFullName(commercialRegNo.getFullName());
+        user.setEmail(commercialRegNo.getEmail());
+        user.setPassword(commercialRegNo.getPassword()); // HASHED
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setActiveAccount(false);
+
+        User savedUser = userRepository.save(user);
+
+        // ✅ Create Company
+        Company company = new Company();
+        company.setName(commercialRegNo.getName());
+        company.setCommercialRegNo(commercialRegNo.getCommercialRegNo());
+        company.setUser(savedUser);
+        company.setCreatedAt(LocalDateTime.now());
+        company.setUpdatedAt(LocalDateTime.now());
+        companyRepository.save(company);
+
+        // ✅ Send email
+        String code = verificationService.generateCode(user.getEmail());
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
 
     /**

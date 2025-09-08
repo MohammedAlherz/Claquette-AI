@@ -8,6 +8,7 @@ import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
 import com.example.claquetteai.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -86,36 +87,10 @@ public class CompanyService {
     }
 
     @Transactional
-    public void registerCompanyWithVerification(CompanyDTOIN dto) {
+    public void registerCompanyWithVerification(CompanyDTOIN dto) throws JsonProcessingException {
         // ✅ Validate CR
-        WatheqValidationResponse watheqResponse = watheqService.validateCommercialRegNo(dto.getCommercialRegNo());
-        if (!watheqResponse.isValid() || !watheqResponse.isActive()) {
-            throw new ApiException("Invalid or inactive commercial registration");
-        }
+        watheqService.validateCommercialRegNo(dto);
 
-        // ✅ Create User with hashed password
-        User user = new User();
-        user.setFullName(dto.getFullName());
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword()); // HASHED
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-        user.setActiveAccount(false);
-
-        User savedUser = userRepository.save(user);
-
-        // ✅ Create Company
-        Company company = new Company();
-        company.setName(dto.getName());
-        company.setCommercialRegNo(dto.getCommercialRegNo());
-        company.setUser(savedUser);
-        company.setCreatedAt(LocalDateTime.now());
-        company.setUpdatedAt(LocalDateTime.now());
-        companyRepository.save(company);
-
-        // ✅ Send email
-        String code = verificationService.generateCode(user.getEmail());
-        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
 
     @Transactional

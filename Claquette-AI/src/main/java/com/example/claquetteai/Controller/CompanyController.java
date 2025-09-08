@@ -3,6 +3,7 @@ package com.example.claquetteai.Controller;
 import com.example.claquetteai.Api.ApiResponse;
 import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.Service.CompanyService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -42,7 +43,7 @@ public class CompanyController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody @Valid CompanyDTOIN dto) {
+    public ResponseEntity<?> register(@RequestBody @Valid CompanyDTOIN dto) throws JsonProcessingException {
         companyService.registerCompanyWithVerification(dto);
         return ResponseEntity.ok().body(new ApiResponse(
                 "Company registered successfully. Please check your email to verify your account."
