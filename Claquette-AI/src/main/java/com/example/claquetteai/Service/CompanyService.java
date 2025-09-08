@@ -3,6 +3,7 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.DTO.CompanyDTOOUT;
+import com.example.claquetteai.DTO.WatheqValidationResponse;
 import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
@@ -29,9 +30,33 @@ public class CompanyService {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final VerificationService verificationService;
-    private final VerificationEmailService emailService;
-    private final PasswordResetService passwordResetService;
-    private final JwtUtil jwtUtil;
+    private final  VerificationEmailService emailService;
+    private final  PasswordResetService passwordResetService;
+    private final JwtUtil  jwtUtil;
+    private final WatheqService watheqService;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     @Transactional
@@ -54,14 +79,6 @@ public class CompanyService {
         userRepository.save(user);
     }
 
-
-
-
-
-
-
-
-
     public List<CompanyDTOOUT> getAllCompanies() {
         return companyRepository.findAll().stream()
                 .map(this::convertToDTO)
@@ -70,28 +87,33 @@ public class CompanyService {
 
     @Transactional
     public void registerCompanyWithVerification(CompanyDTOIN dto) {
-        // Create User
+        // ✅ Validate CR
+        WatheqValidationResponse watheqResponse = watheqService.validateCommercialRegNo(dto.getCommercialRegNo());
+        if (!watheqResponse.isValid() || !watheqResponse.isActive()) {
+            throw new ApiException("Invalid or inactive commercial registration");
+        }
+
+        // ✅ Create User with hashed password
         User user = new User();
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(dto.getPassword()); // HASHED
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        user.setActiveAccount(false); // not verified yet
+        user.setActiveAccount(false);
 
         User savedUser = userRepository.save(user);
 
-        // Create Company
+        // ✅ Create Company
         Company company = new Company();
         company.setName(dto.getName());
         company.setCommercialRegNo(dto.getCommercialRegNo());
         company.setUser(savedUser);
         company.setCreatedAt(LocalDateTime.now());
         company.setUpdatedAt(LocalDateTime.now());
-
         companyRepository.save(company);
 
-        // 🔑 Generate and send code
+        // ✅ Send email
         String code = verificationService.generateCode(user.getEmail());
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
@@ -182,11 +204,8 @@ public class CompanyService {
         if (user == null) throw new ApiException("user not found");
 
         byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read upload", e);
-        }
+        try { bytes = file.getBytes(); }
+        catch (IOException e) { throw new RuntimeException("Failed to read upload", e); }
 
         // sanity: ensure real image
         try (var in = new ByteArrayInputStream(bytes)) {
@@ -216,17 +235,13 @@ public class CompanyService {
         if (b64 == null || b64.isBlank()) return ResponseEntity.notFound().build();
 
         byte[] bytes;
-        try {
-            bytes = java.util.Base64.getDecoder().decode(b64);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(500).build();
-        }
+        try { bytes = java.util.Base64.getDecoder().decode(b64); }
+        catch (IllegalArgumentException e) { return ResponseEntity.status(500).build(); }
 
         MediaType mediaType = MediaType.IMAGE_PNG; // default
         if (u.getProfileImageContentType() != null) {
-            try {
-                mediaType = MediaType.parseMediaType(u.getProfileImageContentType());
-            } catch (Exception ignored) { /* keep default */ }
+            try { mediaType = MediaType.parseMediaType(u.getProfileImageContentType()); }
+            catch (Exception ignored) { /* keep default */ }
         }
 
         return ResponseEntity.ok()
@@ -234,7 +249,6 @@ public class CompanyService {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"user-" + userId + imageExt(mediaType) + "\"")
                 .body(bytes);
     }
-
     private static String imageExt(MediaType mt) {
         if (MediaType.IMAGE_JPEG.equals(mt)) return ".jpg";
         if (MediaType.valueOf("image/webp").equals(mt)) return ".webp";

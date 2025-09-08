@@ -19,6 +19,7 @@ public class CompanyController {
 
 
 
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String token,
                                            @RequestParam String newPassword) {
@@ -47,6 +48,7 @@ public class CompanyController {
                 "Company registered successfully. Please check your email to verify your account."
         ));
     }
+
 
     @PostMapping("/verify/{userId}")
     public ResponseEntity<?> verify(@PathVariable Integer userId, @RequestParam("code") String code) {
