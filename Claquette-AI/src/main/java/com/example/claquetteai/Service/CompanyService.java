@@ -8,6 +8,7 @@ import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
 import com.example.claquetteai.Repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -35,30 +36,6 @@ public class CompanyService {
     private final  PasswordResetService passwordResetService;
     private final JwtUtil  jwtUtil;
     private final WatheqService watheqService;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     @Transactional
     public void forgotPassword(String email) {
@@ -89,37 +66,9 @@ public class CompanyService {
     }
 
     @Transactional
-    public void registerCompanyWithVerification(CompanyDTOIN dto) throws JsonProcessingException {
+    public void registerCompanyWithVerification(CompanyDTOIN dto) throws JsonProcessingException, JsonProcessingException {
         // ✅ Validate CR
         watheqService.validateCommercialRegNo(dto);
-
-    public void registerCompanyWithVerification(CompanyDTOIN dto) {
-        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
-        String hasPassword = bCrypt.encode(dto.getPassword());
-        // Create User
-        User user = new User();
-        user.setFullName(dto.getFullName());
-        user.setEmail(dto.getEmail());
-        user.setPassword(hasPassword);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-        user.setActiveAccount(false); // not verified yet
-        user.setRole("COMPANY");
-        User savedUser = userRepository.save(user);
-
-        // Create Company
-        Company company = new Company();
-        company.setName(dto.getName());
-        company.setCommercialRegNo(dto.getCommercialRegNo());
-        company.setUser(savedUser);
-        company.setCreatedAt(LocalDateTime.now());
-        company.setUpdatedAt(LocalDateTime.now());
-
-        companyRepository.save(company);
-
-        // 🔑 Generate and send code
-        String code = verificationService.generateCode(user.getEmail());
-        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
 
     @Transactional

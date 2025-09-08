@@ -12,7 +12,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -33,8 +35,8 @@ public class WatheqService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
 
-//    @Value("${wathq.api.key}")
-    private String wathqApiKey = "LujF9fmxOPxr7BQt68QclyeGgAxGFliI";
+    @Value("${watheq.api.key}")
+    private String wathqApiKey;
 
     /**
      * Validate a commercial registration number with Watheq API
@@ -61,25 +63,29 @@ public class WatheqService {
         if (!"نشط".equalsIgnoreCase(status)) {
             throw new ApiException("Commercial registration is not Active: " + status);
         }
-        // ✅ Create User with hashed password
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+        String hasPassword = bCrypt.encode(commercialRegNo.getPassword());
+        // Create User
         User user = new User();
         user.setFullName(commercialRegNo.getFullName());
         user.setEmail(commercialRegNo.getEmail());
-        user.setPassword(commercialRegNo.getPassword()); // HASHED
+        user.setPassword(hasPassword);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-        user.setActiveAccount(false);
-
+        user.setActiveAccount(false); // not verified yet
+        user.setRole("COMPANY");
         User savedUser = userRepository.save(user);
 
-        // ✅ Create Company
+        // Create Company
         Company company = new Company();
         company.setName(commercialRegNo.getName());
         company.setCommercialRegNo(commercialRegNo.getCommercialRegNo());
         company.setUser(savedUser);
         company.setCreatedAt(LocalDateTime.now());
         company.setUpdatedAt(LocalDateTime.now());
+
         companyRepository.save(company);
+
 
         // ✅ Send email
         String code = verificationService.generateCode(user.getEmail());
