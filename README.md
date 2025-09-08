@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="" alt="Claquette AI" width="200"/>
-</p>
+<img src="Claquette-AI/src/main/resources/templates/Assets/logo.png" alt="Claquette AI" width="200"/>
 
 # Claquette AI
 
