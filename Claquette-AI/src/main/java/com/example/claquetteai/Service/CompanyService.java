@@ -36,6 +36,30 @@ public class CompanyService {
     private final JwtUtil  jwtUtil;
     private final WatheqService watheqService;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @Transactional
     public void forgotPassword(String email) {
         passwordResetService.sendPasswordResetEmail(email);

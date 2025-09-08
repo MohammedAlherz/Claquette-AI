@@ -3,6 +3,8 @@ package com.example.claquetteai.Advice;
 import com.example.claquetteai.Api.ApiException;
 
 import com.example.claquetteai.Api.ApiResponse;
+import jakarta.validation.UnexpectedTypeException;
+import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.core.io.JsonEOFException;
 import jakarta.validation.UnexpectedTypeException;
 import org.springframework.http.HttpStatus;
