@@ -2,7 +2,6 @@ package com.example.claquetteai.ControllerTest;
 
 import com.example.claquetteai.Controller.CompanyController;
 import com.example.claquetteai.DTO.CompanyDTOOUT;
-import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Service.CompanyService;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,12 +23,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
-import java.util.Collections;
 
 import static java.util.Collections.emptyList;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
