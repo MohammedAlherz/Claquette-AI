@@ -9,7 +9,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
@@ -18,7 +17,6 @@ import java.util.List;
 @Entity
 public class CompanySubscription {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @NotEmpty(message = "Plan type cannot be null")
@@ -34,7 +32,7 @@ public class CompanySubscription {
     private LocalDateTime endDate;
 
     @NotEmpty(message = "Status cannot be null")
-    @Pattern(regexp = "ACTIVE|EXPIRED|CANCELLED|PENDING",
+    @Pattern(regexp = "ACTIVE|EXPIRED|CANCELLED|PENDING|FREE_PLAN",
             message = "Status must be: ACTIVE, EXPIRED, CANCELLED, or PENDING")
     @Column(columnDefinition = "varchar(20) not null")
     private String status;
@@ -43,7 +41,7 @@ public class CompanySubscription {
     private LocalDateTime nextBillingDate;
 
     @Column(columnDefinition = "decimal(10,2)")
-    private BigDecimal monthlyPrice; // Can be null for FREE plan
+    private Double monthlyPrice; // Can be null for FREE plan
 
 
     @CreationTimestamp

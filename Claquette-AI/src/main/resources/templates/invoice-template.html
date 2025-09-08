@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Claquette AI - Invoice</title>
+    <style>
+        @page {
+            margin: 20mm;
+            size: A4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+        }
+
+        .invoice-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        /* Header Section */
+        .invoice-header {
+            background: #D4B06A;
+            color: white;
+            padding: 25px;
+            margin-bottom: 30px;
+            position: relative;
+            min-height: 100px;
+        }
+
+        .header-left {
+            width: 60%;
+            float: left;
+        }
+
+        .header-right {
+            width: 35%;
+            float: right;
+            text-align: right;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .company-tagline {
+            font-size: 11px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .invoice-title {
+            font-size: 28px;
+            font-weight: 300;
+            color: white;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 4px;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* Invoice Info Section */
+        .invoice-info {
+            margin-bottom: 30px;
+            border-bottom: 2px solid #D4B06A;
+            padding-bottom: 20px;
+        }
+
+        .info-left, .info-right {
+            width: 48%;
+            float: left;
+        }
+
+        .info-right {
+            float: right;
+        }
+
+        .section-title {
+            color: #2F5233;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-row {
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 600;
+            width: 35%;
+            float: left;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 700;
+            width: 60%;
+            float: right;
+            text-align: right;
+        }
+
+        .status-paid {
+            background: #D4B06A;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Service Table */
+        .service-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            border: 1px solid #ddd;
+        }
+
+        .service-table th {
+            background: #2F5233;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .service-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        .service-name {
+            font-weight: bold;
+            color: #2F5233;
+        }
+
+        .plan-type {
+            color: #D4B06A;
+            font-weight: 600;
+        }
+
+        .amount-cell {
+            text-align: right;
+            font-weight: bold;
+            color: #2F5233;
+        }
+
+        .total-row {
+            background: #f8f9fa;
+            border-top: 2px solid #D4B06A;
+        }
+
+        .total-row td {
+            font-weight: bold;
+            font-size: 14px;
+            padding: 15px 8px;
+        }
+
+        .total-amount {
+            color: #D4B06A;
+            font-size: 16px;
+        }
+
+        /* Summary Boxes */
+        .summary-box {
+            background: #f8f9fa;
+            border-left: 4px solid #D4B06A;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .summary-title {
+            color: #2F5233;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .summary-text {
+            color: #666;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        .invoice-footer {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .footer-text {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+        .footer-bold {
+            font-weight: bold;
+            color: #2F5233;
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mb-20 { margin-bottom: 20px; }
+        .mt-20 { margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="invoice-container">
+
+    <!-- Header -->
+    <div class="invoice-header clearfix">
+        <div class="header-left">
+            <div class="logo-text">Claquette AI</div>
+            <div class="company-tagline">AI-Powered Film Production Platform</div>
+        </div>
+        <div class="header-right">
+            <div class="invoice-title">INVOICE</div>
+        </div>
+    </div>
+
+    <!-- Invoice Information -->
+    <div class="invoice-info clearfix">
+        <div class="info-left">
+            <div class="section-title">Invoice Details</div>
+            <div class="info-row clearfix">
+                <span class="info-label">Invoice ID:</span>
+                <span class="info-value" th:text="${subscriptionId}">CLA-123</span>
+            </div>
+            <div class="info-row clearfix">
+                <span class="info-label">Issue Date:</span>
+                <span class="info-value" th:text="${date}">2025-09-05</span>
+            </div>
+            <div class="info-row clearfix">
+                <span class="info-label">Status:</span>
+                <span class="info-value">
+                    <span class="status-paid" th:text="${status}">PAID</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="info-right">
+            <div class="section-title">Bill To</div>
+            <div class="info-row clearfix">
+                <span class="info-label">Name:</span>
+                <span class="info-value" th:text="${userName}">Mohammed</span>
+            </div>
+            <div class="info-row clearfix">
+                <span class="info-label">Email:</span>
+                <span class="info-value" th:text="${userEmail}">customer@email.com</span>
+            </div>
+            <div class="info-row clearfix">
+                <span class="info-label">Payment:</span>
+                <span class="info-value" th:text="${paymentMethod}">Credit Card</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Summary -->
+    <div class="summary-box">
+        <div class="summary-title">Service Summary</div>
+        <div class="summary-text">
+            Thank you for choosing Claquette AI for your film production needs. This invoice covers your subscription to our AI-powered platform, providing you with advanced tools for script generation, character development, and comprehensive film production management.
+        </div>
+    </div>
+
+    <!-- Service Table -->
+    <table class="service-table">
+        <thead>
+        <tr>
+            <th style="width: 45%;">SERVICE DESCRIPTION</th>
+            <th style="width: 25%;">PLAN TYPE</th>
+            <th style="width: 15%;">PERIOD</th>
+            <th style="width: 15%; text-align: right;">AMOUNT</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td class="service-name" th:text="${serviceName}">Claquette AI Platform</td>
+            <td class="plan-type" th:text="${planName}">Advanced Monthly Plan</td>
+            <td th:text="${period}">Monthly</td>
+            <td class="amount-cell" th:text="${priceFormatted}">1999.99 SAR</td>
+        </tr>
+        </tbody>
+        <tfoot>
+        <tr class="total-row">
+            <td colspan="3" class="text-right">TOTAL AMOUNT DUE</td>
+            <td class="amount-cell total-amount" th:text="${totalFormatted}">1999.99 SAR</td>
+        </tr>
+        </tfoot>
+    </table>
+
+    <!-- Payment Information -->
+    <div class="summary-box">
+        <div class="summary-title">Payment Information</div>
+        <div class="summary-text">
+            Payment has been successfully processed via <span th:text="${paymentMethod}">Credit Card</span>.
+            Your subscription is now active and all platform features are available.
+            Transaction completed on <span th:text="${date}">2025-09-05</span>.
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="invoice-footer">
+        <div class="footer-text footer-bold">Thank you for choosing Claquette AI!</div>
+        <div class="footer-text">This invoice was generated automatically by our platform.</div>
+        <div class="footer-text">For support, contact us at support@claquette-ai.com</div>
+        <div class="footer-text">Visit us at www.claquette-ai.com</div>
+        <div class="footer-text mt-20" style="color: #D4B06A; font-size: 10px;">
+            Powered by Claquette AI - 2025
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+POST http://localhost:8080/api/v1/pay/card
+Content-Type: application/json
+
+{
+"id": 1,
+"name": "Test User",
+"number": "4111111111111111",
+"cvc": "123",
+"month": "12",
+"year": "25",
+"amount": 100,
+"currency": "SAR",
+"description": "Test payment",
+"callbackUrl": "https://your-server.com/api/payments/callback"
+}

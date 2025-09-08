@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -46,4 +47,8 @@ public class Film {
     @MapsId
     @JsonIgnore
     private Project project;
+
+    @OneToMany(mappedBy = "film", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private Set<Scene> scenes;
 }

@@ -2,7 +2,9 @@ package com.example.claquetteai.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -17,18 +19,20 @@ import java.util.Set;
 @Entity
 public class Company {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotEmpty(message = "Company name cannot be null")
-    @Size(min = 2, max = 200, message = "Company name should be between 2 and 200 characters")
+
+    @NotEmpty(message = "Name should not be empty")
+    @Size(min = 2, max = 200, message = "Company name must be between 2 and 200 characters")
     @Column(columnDefinition = "varchar(200) not null")
     private String name;
 
-    @NotEmpty(message = "Commercial registration number cannot be null")
-    @Size(max = 50, message = "Commercial registration number should not exceed 50 characters")
-    @Column(columnDefinition = "varchar(50) unique not null")
+    @NotEmpty(message = "Registration number should not be empty")
+    @Size(min = 10, max = 10, message = "Commercial registration number must be exactly 10 digits")
+    @Column(columnDefinition = "varchar(10) unique not null")
     private String commercialRegNo;
+
+    private Boolean isSubscribed = false;
 
     @CreationTimestamp
     @Column
