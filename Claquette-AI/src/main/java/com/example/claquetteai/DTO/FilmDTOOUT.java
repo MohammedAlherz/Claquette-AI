@@ -5,12 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Set;
+
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class SceneDTOOUT {
-    private String dialogue;
-    private Integer episodeNumber;
-    private String episodeTitle;
+@AllArgsConstructor
+public class FilmDTOOUT {
+    private String title;
+    private String summary;
 }

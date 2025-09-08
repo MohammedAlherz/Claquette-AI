@@ -28,4 +28,6 @@ public class CastingInfoController {
         castingInfoService.contactCast(user.getId(), castingRecommendationId, castingContactDTOIN);
         return ResponseEntity.ok("Message sent successfully");
     }
+
+
 }

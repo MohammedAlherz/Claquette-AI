@@ -36,6 +36,6 @@ public class CompanyDTOIN {
     private String name;
 
     @NotEmpty(message = "Commercial registration number cannot be null")
-    @Size(max = 50, message = "Commercial registration number should not exceed 50 characters")
+    @Size(min = 10, max = 10, message = "Commercial registration number must be exactly 10 digits")
     private String commercialRegNo;
 }

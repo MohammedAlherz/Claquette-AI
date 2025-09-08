@@ -86,7 +86,7 @@ public class ProjectService {
         project.setStartProjectDate(updatedProject.getStartProjectDate());
         project.setEndProjectDate(updatedProject.getEndProjectDate());
         if(project.getProjectType().equals("FILM")){
-            project.setEpisodeCount(1);
+            project.setEpisodeCount(0);
         }else{
             project.setEpisodeCount(updatedProject.getEpisodeCount());
         }

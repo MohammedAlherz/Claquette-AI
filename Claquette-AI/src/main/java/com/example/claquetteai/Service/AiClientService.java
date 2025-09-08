@@ -35,8 +35,7 @@ public class AiClientService {
             {"role": "system", "content": "You are a professional Saudi screenwriter. CRITICAL RULES: 1) Return ONLY valid JSON. 2) 'assumptions' must be an ARRAY of strings, not an object. 3) No explanations, no markdown, no code blocks. 4) Start with { and end with }. 5) No trailing commas."},
             {"role": "user", "content": %s}
           ],
-          "temperature": 0.7,
-          "max_tokens": 5000
+          "temperature": 0.7
         }
         """.formatted(mapper.writeValueAsString(prompt));
 

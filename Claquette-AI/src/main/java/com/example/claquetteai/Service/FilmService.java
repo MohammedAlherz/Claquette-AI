@@ -1,6 +1,9 @@
 package com.example.claquetteai.Service;
 
 import com.example.claquetteai.Api.ApiException;
+import com.example.claquetteai.DTO.FilmDTOOUT;
+import com.example.claquetteai.DTO.FilmSceneDTOOUT;
+import com.example.claquetteai.DTO.SceneDTOOUT;
 import com.example.claquetteai.Model.*;
 import com.example.claquetteai.Repository.*;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -112,8 +116,8 @@ public class FilmService {
         return savedFilm;
     }
 
-    // Get project film with authorization
-    public Film getProjectFilm(Integer userId, Integer projectId) {
+    // Get project film with authorization (returning DTO)
+    public FilmDTOOUT getProjectFilm(Integer userId, Integer projectId) {
         User user = userRepository.findUserById(userId);
         if (user == null) {
             throw new ApiException("User not found");
@@ -132,11 +136,11 @@ public class FilmService {
             throw new ApiException("No film found for this project");
         }
 
-        return film;
+        return convertToFilmDTO(film);
     }
 
-    // Get film scenes with authorization
-    public Set<Scene> getFilmScenes(Integer userId, Integer projectId) {
+    // Get film scenes with authorization (returning DTO)
+    public Set<FilmSceneDTOOUT> getFilmScenes(Integer userId, Integer projectId) {
         User user = userRepository.findUserById(userId);
         if (user == null) {
             throw new ApiException("User not found");
@@ -155,9 +159,32 @@ public class FilmService {
             throw new ApiException("No film found for this project");
         }
 
-        return film.getScenes();
+        return convertToFilmSceneDTOs(film.getScenes());
     }
 
+    // Converter methods for FILM scenes
+    private FilmDTOOUT convertToFilmDTO(Film film) {
+        FilmDTOOUT dto = new FilmDTOOUT();
+        dto.setTitle(film.getTitle());
+        dto.setSummary(film.getSummary());
+        return dto;
+    }
+
+    private Set<FilmSceneDTOOUT> convertToFilmSceneDTOs(Set<Scene> scenes) {
+        return scenes.stream()
+                .map(this::convertToFilmSceneDTO)
+                .collect(Collectors.toSet());
+    }
+
+    private FilmSceneDTOOUT convertToFilmSceneDTO(Scene scene) {
+        FilmSceneDTOOUT dto = new FilmSceneDTOOUT();
+        dto.setSceneNumber(scene.getSceneNumber());
+        dto.setSetting(scene.getSetting());
+        dto.setActions(scene.getActions());
+        dto.setDialogue(scene.getDialogue());
+        dto.setDepartmentNotes(scene.getDepartmentNotes());
+        return dto;
+    }
     // Utility method to validate film character consistency
     public void validateFilmCharacterConsistency(Film film, String expectedCharacterNames) {
         if (film.getScenes() == null || expectedCharacterNames == null) {
@@ -193,14 +220,18 @@ public class FilmService {
     }
 
     // Get all films for a user (for dashboard/analytics)
-    public List<Film> getUserFilms(Integer userId) {
+    public List<FilmDTOOUT> getUserFilms(Integer userId) {
         User user = userRepository.findUserById(userId);
         if (user == null) {
             throw new ApiException("User not found");
         }
 
         List<Project> projects = projectRepository.findProjectsByCompany_User_Id(userId);
-        return filmRepository.findFilmsByProjectIn(projects);
+        List<Film> films = filmRepository.findFilmsByProjectIn(projects);
+
+        return films.stream()
+                .map(this::convertToFilmDTO)
+                .collect(Collectors.toList());
     }
 
 

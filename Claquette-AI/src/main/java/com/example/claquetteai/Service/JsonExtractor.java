@@ -2,6 +2,7 @@ package com.example.claquetteai.Service;
 
 import com.example.claquetteai.Model.*;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.io.JsonEOFException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,31 @@ public class JsonExtractor {
      * Creates Film entity with scenes and character associations
      */
     public Film extractFilmWithScenes(String json, Project project) throws Exception {
-        JsonNode root = mapper.readTree(json);
+        if (json == null || json.trim().isEmpty()) {
+            throw new RuntimeException("Empty JSON response from AI service");
+        }
+        // Clean the JSON response first
+        json = cleanJsonResponse(json);
 
+        // Validate JSON structure before parsing
+        if (!isValidJsonStructure(json)) {
+            System.err.println("=== MALFORMED JSON DETECTED ===");
+            System.err.println("Response length: " + json.length());
+            System.err.println("Response ends with: " + json.substring(Math.max(0, json.length() - 100)));
+            System.err.println("Expected to end with '}' or ']', but ends with: '" + json.charAt(json.length() - 1) + "'");
+            throw new RuntimeException("AI service returned incomplete JSON. Response appears to be truncated.");
+        }
+
+        JsonNode root;
+        try {
+            root = mapper.readTree(json);
+        } catch (JsonEOFException e) {
+            System.err.println("JSON EOF Exception - response was cut off");
+            throw new RuntimeException("AI response was truncated - try reducing prompt size or increasing token limits", e);
+        } catch (Exception e) {
+            System.err.println("JSON parsing failed: " + e.getMessage());
+            throw new RuntimeException("Could not parse AI response as valid JSON", e);
+        }
         // Create Film entity
         Film film = new Film();
         film.setProject(project);
@@ -52,6 +76,34 @@ public class JsonExtractor {
         film.setScenes(scenes);
 
         return film;
+    }
+
+    private boolean isValidJsonStructure(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return false;
+        }
+
+        json = json.trim();
+
+        // Basic structure validation
+        if (json.startsWith("{") && !json.endsWith("}")) {
+            System.err.println("JSON starts with '{' but doesn't end with '}'");
+            return false;
+        }
+
+        if (json.startsWith("[") && !json.endsWith("]")) {
+            System.err.println("JSON starts with '[' but doesn't end with ']'");
+            return false;
+        }
+
+        // Try a quick parse test
+        try {
+            mapper.readTree(json);
+            return true;
+        } catch (Exception e) {
+            System.err.println("JSON structure validation failed: " + e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -102,8 +154,33 @@ public class JsonExtractor {
      * Extracts single episode with scenes from AI JSON response
      */
     public Episode extractEpisodeWithScenes(String json, Project project, int episodeNumber) throws Exception {
-        JsonNode root = mapper.readTree(json);
+        // ADD JSON VALIDATION BEFORE PARSING
+        if (json == null || json.trim().isEmpty()) {
+            throw new RuntimeException("Empty JSON response from AI service");
+        }
 
+        // Clean the JSON response first
+        json = cleanJsonResponse(json);
+
+        // Validate JSON structure before parsing
+        if (!isValidJsonStructure(json)) {
+            System.err.println("=== MALFORMED JSON DETECTED ===");
+            System.err.println("Response length: " + json.length());
+            System.err.println("Response ends with: " + json.substring(Math.max(0, json.length() - 100)));
+            throw new RuntimeException("AI service returned incomplete JSON. Response appears to be truncated.");
+        }
+
+        // WRAP THE EXISTING LINE WITH TRY-CATCH
+        JsonNode root;
+        try {
+            root = mapper.readTree(json);
+        } catch (JsonEOFException e) {
+            System.err.println("JSON EOF Exception - response was cut off");
+            throw new RuntimeException("AI response was truncated - try reducing prompt size or increasing token limits", e);
+        } catch (Exception e) {
+            System.err.println("JSON parsing failed: " + e.getMessage());
+            throw new RuntimeException("Could not parse AI response as valid JSON", e);
+        }
         Episode episode = new Episode();
         episode.setProject(project);
         episode.setEpisodeNumber(episodeNumber);

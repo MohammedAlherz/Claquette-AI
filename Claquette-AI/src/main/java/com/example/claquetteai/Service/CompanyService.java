@@ -104,7 +104,22 @@ public class CompanyService {
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
     }
 
+    public CompanyDTOOUT getMyCompany(Integer userId) {
+        // Find the user by ID
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found with id " + userId);
+        }
 
+        // Get the user's company
+        Company company = user.getCompany();
+        if (company == null) {
+            throw new ApiException("No company associated with this user");
+        }
+
+        // Convert to DTO and return
+        return convertToDTO(company);
+    }
     public void updateOwnCompany(Integer userId, CompanyDTOIN dto) {
         // Find the user by ID
         User authenticatedUser = userRepository.findUserById(userId);

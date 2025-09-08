@@ -1,5 +1,6 @@
 package com.example.claquetteai.Controller;
 
+import com.example.claquetteai.Api.ApiResponse;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Service.CastingService;
 import lombok.RequiredArgsConstructor;
@@ -24,5 +25,13 @@ public class CastingRecommendationController {
                                              @PathVariable Integer projectId,
                                              @PathVariable Integer charId) {
         return ResponseEntity.ok(castingService.personDetails(user.getId(), projectId, charId));
+    }
+
+    // Add this to your CastingController
+    @PostMapping("/generate-casting/{projectId}")
+    public ResponseEntity<?> generateCasting(@AuthenticationPrincipal User user,
+                                             @PathVariable Integer projectId) throws Exception {
+        castingService.generateCastingRecommendations(user.getId(), projectId);
+        return ResponseEntity.ok(new ApiResponse("Casting recommendations generated successfully"));
     }
 }

@@ -59,7 +59,40 @@ public class CastingService {
         // Save all casting recommendations
         return new HashSet<>(castingRepository.saveAll(casting));
     }
+    // NEW: Generate casting recommendations with character validation (for controller use)
+    public void generateCastingRecommendations(Integer userId, Integer projectId) throws Exception {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("user not found");
+        }
 
+        if (!user.getCompany().getIsSubscribed()) {
+            throw new ApiException("you must subscribe to generate casting recommendations");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("project not found");
+        }
+
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("not authorized");
+        }
+
+        // CRITICAL: Check if characters exist first
+        if (project.getCharacters() == null || project.getCharacters().isEmpty()) {
+            throw new ApiException("No characters found for this project. Please generate characters first before creating recommendations.");
+        }
+
+        System.out.println("=== GENERATING CASTING RECOMMENDATIONS ===");
+        System.out.println("Project: " + project.getTitle());
+        System.out.println("Available Characters: " + project.getCharacters().size());
+
+        // Generate casting recommendations
+        generateCasting(project);
+
+        System.out.println("=== CASTING GENERATION COMPLETE ===");
+    }
     // UPDATED: Get casting recommendations using existing DTO structure
     public List<CastingRecommendationDTOOUT> castingRecommendations(Integer userId, Integer projectId){
         User user = userRepository.findUserById(userId);

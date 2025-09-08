@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -43,7 +44,6 @@ public class WatheqService {
      */
     public void validateCommercialRegNo(CompanyDTOIN commercialRegNo) throws JsonProcessingException {
 
-
         if (commercialRegNo == null || commercialRegNo.getCommercialRegNo().isEmpty()) {
             throw new ApiException("Commercial registration number is required");
         }
@@ -53,18 +53,70 @@ public class WatheqService {
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         HttpEntity<Void> req = new HttpEntity<>(headers);
 
-        String url =
-                "https://api.wathq.sa/commercial-registration/fullinfo/" + commercialRegNo.getCommercialRegNo();
+        String url = "https://api.wathq.sa/commercial-registration/fullinfo/" + commercialRegNo.getCommercialRegNo();
 
-        ResponseEntity<String> res = restTemplate.exchange(url, HttpMethod.GET, req, String.class);
-        JsonNode root = mapper.readTree(res.getBody());
+        try {
+            ResponseEntity<String> res = restTemplate.exchange(url, HttpMethod.GET, req, String.class);
+            JsonNode root = mapper.readTree(res.getBody());
 
-        String status = root.path("status").path("name").asText();
-        if (!"نشط".equalsIgnoreCase(status)) {
-            throw new ApiException("Commercial registration is not Active: " + status);
+            String status = root.path("status").path("name").asText();
+            if (!"نشط".equalsIgnoreCase(status)) {
+                throw new ApiException("Commercial registration is not Active: " + status);
+            }
+
+            // If validation is successful, proceed with user and company creation
+            createUserAndCompany(commercialRegNo);
+
+        } catch (HttpClientErrorException.BadRequest e) {
+            log.error("Watheq API Bad Request: {}", e.getMessage());
+
+            // Parse the error response to get specific error details
+            try {
+                JsonNode errorResponse = mapper.readTree(e.getResponseBodyAsString());
+                String errorCode = errorResponse.path("code").asText();
+                String errorMessage = errorResponse.path("message").asText();
+
+                if ("400.1.5".equals(errorCode)) {
+                    throw new ApiException(
+                            "Invalid registration number format."+
+                                    "Please provide the correct national commercial registration number."
+                    );
+                }
+
+                // Handle other specific error codes if needed
+                throw new ApiException("Registration validation failed: " + errorMessage);
+
+            } catch (JsonProcessingException jsonEx) {
+                // If we can't parse the error response, provide a generic message
+                throw new ApiException(
+                        "Commercial registration number validation failed. Please ensure you're using a valid commercial registration national number (700 series)."
+                );
+            }
+
+        } catch (HttpClientErrorException e) {
+            log.error("Watheq API Error: {} - {}", e.getStatusCode(), e.getMessage());
+
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                throw new ApiException("Commercial registration number not found in Watheq database");
+            } else if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new ApiException("API authentication failed. Please contact support.");
+            } else {
+                throw new ApiException("Registration validation service is temporarily unavailable. Please try again later.");
+            }
+
+        } catch (Exception e) {
+            log.error("Unexpected error during registration validation: {}", e.getMessage(), e);
+            throw new ApiException("An unexpected error occurred during registration validation. Please try again.");
         }
+    }
+
+    /**
+     * Create user and company after successful validation
+     */
+    private void createUserAndCompany(CompanyDTOIN commercialRegNo) {
         BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
         String hasPassword = bCrypt.encode(commercialRegNo.getPassword());
+
         // Create User
         User user = new User();
         user.setFullName(commercialRegNo.getFullName());
@@ -86,10 +138,25 @@ public class WatheqService {
 
         companyRepository.save(company);
 
-
-        // ✅ Send email
+        // Send verification email
         String code = verificationService.generateCode(user.getEmail());
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), code);
+    }
+
+    /**
+     * Validate the format of the commercial registration number
+     * Saudi commercial registration numbers are typically 10 digits starting with 1 or 4
+     */
+    private boolean isValidRegistrationNumberFormat(String regNo) {
+        if (regNo == null || regNo.trim().isEmpty()) {
+            return false;
+        }
+
+        // Remove any spaces or special characters
+        String cleanRegNo = regNo.replaceAll("[^0-9]", "");
+
+        // Check if it's 10 digits and starts with 1 or 4
+        return cleanRegNo.matches("^[14]\\d{9}$");
     }
 
     /**

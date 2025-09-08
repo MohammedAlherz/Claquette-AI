@@ -138,55 +138,60 @@ public class PromptBuilderService {
     /**
      * ENHANCED: Generates prompt for creating episode with scenes using EXACT character names
      */
-    public String episodePrompt(String projectDescription, int episodeNumber, String characterNames) {
+    public String episodePrompt(String projectDescription, int totalEpisodes, String characterNames) {
         return BASE_PROMPT + """
 
-        ### TASK
-        Based on this project description: "%s"
-        
-        CRITICAL CHARACTER CONSISTENCY RULE:
-        You must use ONLY these exact character names in all dialogue: %s
-        DO NOT create new characters or change these names. Use these names exactly as provided.
-        
-        Generate episode %d with detailed scenes in JSON format:
+    ### TASK
+    Based on this project description: "%s"
+    
+    CRITICAL CHARACTER CONSISTENCY RULE:
+    You must use ONLY these exact character names in all dialogue: %s
+    DO NOT create new characters or change these names. Use these names exactly as provided.
+    
+    Generate ALL %d episodes for this series in JSON format:
 
+    {
+      "episodes": [
         {
-          "episode": {
-            "episode": %d,
-            "title": "string",
-            "summary": "string (3–4 جمل)",
-            "dramatic_goal": "string",
-            "key_characters": [%s],
-            "scenes": [
-              {
-                "slug": "string (INT./EXT. – المكان – وقت اليوم)",
-                "sound": "string (وصف الأصوات)",
-                "mood_light": "string (إضاءة/جو)",
-                "purpose": "string (Beat درامي)",
-                "action": "string (وصف بصري/حركة/سياق)",
-                "dialogue": [
-                  { "character": "string (استخدم فقط من: %s)", "line": "string (جملة/جمل متعددة)", "aside": "string (اختياري: نبرة/فعل موجز)" }
-                ],
-                "internal_monologue": [
-                  { "character": "string (استخدم فقط من: %s)", "thought": "string" }
-                ],
-                "turning_point": "string (نقطة تغيير داخل المشهد إن وُجدت)"
-              }
-            ],
-            "climax": "string (ذروة الحلقة)",
-            "tag": "string (خطّاف للحلقة التالية)"
-          }
+          "episode_number": 1,
+          "title": "string",
+          "summary": "string (3–4 جمل)",
+          "dramatic_goal": "string",
+          "key_characters": [%s],
+          "scenes": [
+            {
+              "slug": "string (INT./EXT. – المكان – وقت اليوم)",
+              "sound": "string (وصف الأصوات)",
+              "mood_light": "string (إضاءة/جو)",
+              "purpose": "string (Beat درامي)",
+              "action": "string (وصف بصري/حركة/سياق)",
+              "dialogue": [
+                { "character": "string (استخدم فقط من: %s)", "line": "string (جملة/جمل متعددة)", "aside": "string (اختياري: نبرة/فعل موجز)" }
+              ],
+              "internal_monologue": [
+                { "character": "string (استخدم فقط من: %s)", "thought": "string" }
+              ],
+              "turning_point": "string (نقطة تغيير داخل المشهد إن وُجدت)"
+            }
+          ],
+          "climax": "string (ذروة الحلقة)",
+          "tag": "string (خطّاف للحلقة التالية)"
         }
-
-        DIALOGUE RULES:
-        - Use ONLY these character names: %s
-        - Do NOT invent new characters like "المدرب" or "عضو اللجنة"
-        - If you need additional voices, use existing characters in different roles
-        - Create 15-25 detailed scenes with rich dialogue and action
-        """.formatted(projectDescription, characterNames, episodeNumber, episodeNumber,
-                formatCharacterNamesForJson(characterNames), characterNames, characterNames, characterNames);
+        // Repeat structure for episodes 2, 3, etc. up to episode %d
+      ]
     }
 
+    IMPORTANT: Generate exactly %d episodes numbered 1 through %d sequentially.
+    Each episode should have 8-12 scenes and advance the overall story arc.
+    
+    DIALOGUE RULES:
+    - Use ONLY these character names: %s
+    - Do NOT invent new characters
+    - Create meaningful story progression across all episodes
+    """.formatted(projectDescription, characterNames, totalEpisodes,
+                formatCharacterNamesForJson(characterNames), characterNames, characterNames,
+                totalEpisodes, totalEpisodes, totalEpisodes, characterNames);
+    }
     /**
      * LEGACY METHOD: Original film prompt (for backward compatibility)
      */

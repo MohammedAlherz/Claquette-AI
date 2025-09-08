@@ -1,10 +1,9 @@
 package com.example.claquetteai.Service;
 
 import com.example.claquetteai.Api.ApiException;
-import com.example.claquetteai.Model.Episode;
-import com.example.claquetteai.Model.FilmCharacters;
-import com.example.claquetteai.Model.Project;
-import com.example.claquetteai.Model.User;
+import com.example.claquetteai.DTO.EpisodeDTOOUT;
+import com.example.claquetteai.DTO.SceneDTOOUT;
+import com.example.claquetteai.Model.*;
 import com.example.claquetteai.Repository.CharacterRepository;
 import com.example.claquetteai.Repository.EpisodeRepository;
 import com.example.claquetteai.Repository.ProjectRepository;
@@ -13,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -108,19 +109,11 @@ public class EpisodeService {
         System.out.println("=== VALIDATION COMPLETE ===");
     }
 
-    // CRUD METHOD: Get episodes for a specific user and project
     public List<Episode> getMyEpisodes(Integer userId, Integer projectId) {
         // You can add user validation here if needed
         return episodeRepository.findByProjectId(projectId);
     }
 
-    // ALTERNATIVE: Get episodes with user validation
-    public List<Episode> getMyEpisodesWithValidation(Integer userId, Integer projectId) {
-        // Add validation logic here if you need to check user permissions
-        // For example: verify that the user owns the project
-        List<Episode> episodes = episodeRepository.findByProjectId(projectId);
-        return episodes;
-    }
 
     public void generateEpisodes(Integer userId, Integer projectId) throws Exception {
         User user = userRepository.findUserById(userId);
@@ -142,14 +135,118 @@ public class EpisodeService {
         }
 
         List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
-
         if (characters.isEmpty()) {
             throw new ApiException("No characters found for this project. Please generate characters first.");
         }
 
-        for (FilmCharacters f : characters) {
-            generateEpisodeWithScenes(project, project.getEpisodeCount(), f.getName());
+        // FIXED: Get all character names together and generate episodes sequentially
+        String characterNames = characters.stream()
+                .map(FilmCharacters::getName)
+                .collect(Collectors.joining(", "));
+
+        // Generate episodes 1, 2, 3... up to the project's episode count
+        for (int episodeNumber = 1; episodeNumber <= project.getEpisodeCount(); episodeNumber++) {
+            generateEpisodeWithScenes(project, episodeNumber, characterNames);
         }
     }
 
+    // Get project episode with authorization
+    public EpisodeDTOOUT getProjectEpisode(Integer userId, Integer projectId, Integer episodeId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized");
+        }
+
+        Episode episode = episodeRepository.findById(episodeId)
+                .orElseThrow(() -> new ApiException("Episode not found"));
+
+        if (!episode.getProject().equals(project)) {
+            throw new ApiException("Episode does not belong to this project");
+        }
+
+        return convertToEpisodeDTO(episode);
+    }
+
+    // Get episode scenes with authorization
+    public Set<SceneDTOOUT> getEpisodeScenes(Integer userId, Integer projectId, Integer episodeId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized");
+        }
+
+        Episode episode = episodeRepository.findById(episodeId)
+                .orElseThrow(() -> new ApiException("Episode not found"));
+
+        if (!episode.getProject().equals(project)) {
+            throw new ApiException("Episode does not belong to this project");
+        }
+
+        return convertToSceneDTOs(episode.getScenes());
+    }
+
+
+    // Converter methods
+    private EpisodeDTOOUT convertToEpisodeDTO(Episode episode) {
+        EpisodeDTOOUT dto = new EpisodeDTOOUT();
+        dto.setEpisodeNumber(episode.getEpisodeNumber());
+        dto.setTitle(episode.getTitle());
+        dto.setSummary(episode.getSummary());
+        return dto;
+    }
+
+    private Set<SceneDTOOUT> convertToSceneDTOs(Set<Scene> scenes) {
+        return scenes.stream()
+                .map(this::convertToSceneDTO)
+                .collect(Collectors.toSet());
+    }
+
+    private SceneDTOOUT convertToSceneDTO(Scene scene) {
+        String dialogue = scene.getDialogue();
+        Integer episodeNumber = null;
+        String episodeTitle = null;
+
+        if (scene.getEpisode() != null) {
+            episodeNumber = scene.getEpisode().getEpisodeNumber();
+            episodeTitle = scene.getEpisode().getTitle();
+        }
+
+        return new SceneDTOOUT(dialogue, episodeNumber, episodeTitle);
+    }
+    // Get episodes for a specific project with authorization
+    public List<EpisodeDTOOUT> getProjectEpisodes(Integer userId, Integer projectId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized");
+        }
+
+        List<Episode> episodes = episodeRepository.findByProjectId(projectId);
+
+        return episodes.stream()
+                .map(this::convertToEpisodeDTO)
+                .collect(Collectors.toList());
+    }
 }

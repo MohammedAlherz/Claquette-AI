@@ -3,6 +3,7 @@ package com.example.claquetteai.Advice;
 import com.example.claquetteai.Api.ApiException;
 
 import com.example.claquetteai.Api.ApiResponse;
+import com.fasterxml.jackson.core.io.JsonEOFException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import jakarta.validation.ConstraintViolationException;
@@ -83,6 +84,11 @@ public class ControllerAdvice {
 
     @ExceptionHandler(value = HttpMediaTypeNotAcceptableException.class)
     public ResponseEntity<ApiResponse> HttpMediaTypeNotAcceptableException(HttpMediaTypeNotAcceptableException e){
+        return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(value = JsonEOFException.class)
+    public ResponseEntity<ApiResponse> JsonEOFException(JsonEOFException e){
         return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
     }
 }

@@ -32,13 +32,18 @@ public class CompanyController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         companyService.forgotPassword(email);
-        return ResponseEntity.ok("Reset password email sent successfully");
+        return ResponseEntity.ok(new ApiResponse("Reset password email sent successfully"));
     }
 
     // ADMIN ONLY - Get all companies in system
     @GetMapping("/companies")
     public ResponseEntity<?> getAllCompanies() {
         return ResponseEntity.ok().body(companyService.getAllCompanies());
+    }
+
+    @GetMapping("/my-company")
+    public ResponseEntity<?> getUserCompany(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok().body(companyService.getMyCompany(user.getId()));
     }
 
     // PUBLIC - No authentication required
@@ -88,15 +93,13 @@ public class CompanyController {
         return ResponseEntity.ok(new ApiResponse("Photo uploaded successfully"));
     }
 
-    // COMPANY or ADMIN - Get photo for authenticated user
-    @GetMapping("/photo")
-    public ResponseEntity<?> getUserPhoto(@AuthenticationPrincipal User user) {
-        return companyService.getUserPhotoResponse(user.getId());
-    }
-
     // COMPANY - Get own profile info
-    @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(companyService.getUserPhotoResponse(user.getId()));
+    @GetMapping(value = "/profile-photo", produces = {
+            MediaType.IMAGE_JPEG_VALUE,
+            MediaType.IMAGE_PNG_VALUE,
+            "image/webp"
+    })
+    public ResponseEntity<byte[]> getProfile(@AuthenticationPrincipal User user) {
+        return companyService.getUserPhotoResponse(user.getId());
     }
 }

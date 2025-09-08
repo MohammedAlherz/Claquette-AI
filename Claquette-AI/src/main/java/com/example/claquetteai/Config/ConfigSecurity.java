@@ -63,6 +63,7 @@ public class ConfigSecurity {
 
                 // COMPANY only endpoints - AI and Content Generation
                 .requestMatchers("/api/v1/ai-interaction/**",
+                        "/api/v1/company/my-company",
                         "/api/v1/characters/**",
                         "/api/v1/episode/**",
                         "/api/v1/film/**",
@@ -86,7 +87,7 @@ public class ConfigSecurity {
 
                 // Both ADMIN and COMPANY can access these
                 .requestMatchers("/api/v1/company/update",
-                        "/api/v1/company/photo",
+                        "/api/v1/company/profile-photo",
                         "/api/v1/company/verify",
                         "/api/v1/company/resend",
                         "/api/v1/company/profile").hasAnyAuthority("ADMIN", "COMPANY")

@@ -1,5 +1,6 @@
 package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
+import com.example.claquetteai.DTO.FilmCharactersDTOOUT;
 import com.example.claquetteai.Model.FilmCharacters;
 import com.example.claquetteai.Model.Project;
 import com.example.claquetteai.Model.User;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,4 +64,37 @@ public class CharacterService {
         generateCharacters(project, project.getDescription());
     }
 
+    public List<FilmCharactersDTOOUT> getProjectCharacters(Integer userId, Integer projectId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("user not found");
+        }
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("project not found");
+        }
+
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("not authorized");
+        }
+
+        List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
+
+        // Convert to DTOs
+        return characters.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    private FilmCharactersDTOOUT toDTO(FilmCharacters character) {
+        FilmCharactersDTOOUT dto = new FilmCharactersDTOOUT();
+        dto.setName(character.getName());
+        dto.setAge(character.getAge());
+        dto.setRoleInStory(character.getRoleInStory());
+        dto.setPersonalityTraits(character.getPersonalityTraits());
+        dto.setBackground(character.getBackground());
+        dto.setCharacterArc(character.getCharacterArc());
+        return dto;
+    }
 }
