@@ -1,13 +1,11 @@
 package com.example.claquetteai.Controller;
 
-import com.example.claquetteai.Api.ApiResponse;
+import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Service.CharacterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/characters")
@@ -16,11 +14,8 @@ public class CharactersController {
 
     private final CharacterService characterService;
 
-    @GetMapping("/{userId}/character-count")
-    public ResponseEntity<?> characterCount(@PathVariable Integer userId){
-        return ResponseEntity.ok(characterService.charactersCount(userId));
+    @GetMapping("/character-count")
+    public ResponseEntity<?> characterCount(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(characterService.charactersCount(user.getId()));
     }
-
-
-
 }

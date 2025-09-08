@@ -1,15 +1,11 @@
 package com.example.claquetteai.Controller;
 
-import com.example.claquetteai.Model.Episode;
+import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Service.EpisodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/episode")
@@ -17,9 +13,9 @@ import java.util.List;
 public class EpisodeController {
     private final EpisodeService episodeService;
 
-
-    @GetMapping("/{userId}/project-episodes/{projectId}")
-    public ResponseEntity<?> getProjectEpisodes(@PathVariable Integer userId,@PathVariable Integer projectId){
-        return ResponseEntity.ok(episodeService.getMyEpisodes(userId,projectId));
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<?> getProjectEpisodes(@AuthenticationPrincipal User user,
+                                                @PathVariable Integer projectId) {
+        return ResponseEntity.ok(episodeService.getMyEpisodes(user.getId(), projectId));
     }
 }

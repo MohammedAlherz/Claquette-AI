@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +42,8 @@ public class CompanyService {
 
     @Transactional
     public void resetPasswordWithToken(String token, String newPassword) {
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+        String hasPassword = bCrypt.encode(newPassword);
         if (!jwtUtil.validateToken(token)) {
             throw new ApiException("❌ Invalid or expired token");
         }
@@ -49,18 +52,10 @@ public class CompanyService {
         User user = userRepository.findUserByEmail(email);
         if (user == null) throw new ApiException("User not found");
 
-        user.setPassword(newPassword);
+        user.setPassword(hasPassword);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
-
-
-
-
-
-
-
-
 
     public List<CompanyDTOOUT> getAllCompanies() {
         return companyRepository.findAll().stream()
@@ -70,15 +65,17 @@ public class CompanyService {
 
     @Transactional
     public void registerCompanyWithVerification(CompanyDTOIN dto) {
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+        String hasPassword = bCrypt.encode(dto.getPassword());
         // Create User
         User user = new User();
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(hasPassword);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         user.setActiveAccount(false); // not verified yet
-
+        user.setRole("COMPANY");
         User savedUser = userRepository.save(user);
 
         // Create Company
@@ -130,26 +127,49 @@ public class CompanyService {
     }
 
 
-    public void updateCompany(Integer id, CompanyDTOIN dto) {
-        Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ApiException("Company not found with id " + id));
-        User user = company.getUser();
+    public void updateOwnCompany(Integer userId, CompanyDTOIN dto) {
+        // Find the user by ID
+        User authenticatedUser = userRepository.findUserById(userId);
+        if (authenticatedUser == null) {
+            throw new ApiException("User not found with id " + userId);
+        }
+
+        // Get the user's company
+        Company company = authenticatedUser.getCompany();
+        if (company == null) {
+            throw new ApiException("No company associated with this user");
+        }
+
+        BCryptPasswordEncoder bCrypt = new BCryptPasswordEncoder();
+
+        // Only hash password if it's provided
+        if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+            String hashedPassword = bCrypt.encode(dto.getPassword());
+            authenticatedUser.setPassword(hashedPassword);
+        }
+
         // Update User fields
-        user.setFullName(dto.getFullName());
-        user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword()); // You should hash the password here
-        user.setUpdatedAt(LocalDateTime.now());
+        authenticatedUser.setFullName(dto.getFullName());
+        authenticatedUser.setEmail(dto.getEmail());
+        authenticatedUser.setUpdatedAt(LocalDateTime.now());
+
         // Update Company fields
         company.setName(dto.getName());
         company.setCommercialRegNo(dto.getCommercialRegNo());
         company.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
+
+        // Save both entities
+        userRepository.save(authenticatedUser);
         companyRepository.save(company);
     }
+    public void deleteCompany(Integer userId,Integer id) {
+        User user = userRepository.findUserById(userId);
+        if(user == null){
+            throw new ApiException("User not found");
+        }
 
-    public void deleteCompany(Integer id) {
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ApiException("Company not found with id " + id));
+                .orElseThrow(() -> new ApiException("Company not found"));
         // This will also delete the user due to cascade relationship
         companyRepository.delete(company);
     }
@@ -182,11 +202,8 @@ public class CompanyService {
         if (user == null) throw new ApiException("user not found");
 
         byte[] bytes;
-        try {
-            bytes = file.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read upload", e);
-        }
+        try { bytes = file.getBytes(); }
+        catch (IOException e) { throw new RuntimeException("Failed to read upload", e); }
 
         // sanity: ensure real image
         try (var in = new ByteArrayInputStream(bytes)) {
@@ -216,17 +233,13 @@ public class CompanyService {
         if (b64 == null || b64.isBlank()) return ResponseEntity.notFound().build();
 
         byte[] bytes;
-        try {
-            bytes = java.util.Base64.getDecoder().decode(b64);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(500).build();
-        }
+        try { bytes = java.util.Base64.getDecoder().decode(b64); }
+        catch (IllegalArgumentException e) { return ResponseEntity.status(500).build(); }
 
         MediaType mediaType = MediaType.IMAGE_PNG; // default
         if (u.getProfileImageContentType() != null) {
-            try {
-                mediaType = MediaType.parseMediaType(u.getProfileImageContentType());
-            } catch (Exception ignored) { /* keep default */ }
+            try { mediaType = MediaType.parseMediaType(u.getProfileImageContentType()); }
+            catch (Exception ignored) { /* keep default */ }
         }
 
         return ResponseEntity.ok()
@@ -234,7 +247,6 @@ public class CompanyService {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"user-" + userId + imageExt(mediaType) + "\"")
                 .body(bytes);
     }
-
     private static String imageExt(MediaType mt) {
         if (MediaType.IMAGE_JPEG.equals(mt)) return ".jpg";
         if (MediaType.valueOf("image/webp").equals(mt)) return ".webp";
