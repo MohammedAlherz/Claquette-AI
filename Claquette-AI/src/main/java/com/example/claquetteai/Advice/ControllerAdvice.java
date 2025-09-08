@@ -4,7 +4,11 @@ import com.example.claquetteai.Api.ApiException;
 
 import com.example.claquetteai.Api.ApiResponse;
 import com.fasterxml.jackson.core.io.JsonEOFException;
+import jakarta.validation.UnexpectedTypeException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,7 +17,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
 import java.sql.SQLIntegrityConstraintViolationException;
 
 @org.springframework.web.bind.annotation.ControllerAdvice
@@ -90,5 +97,40 @@ public class ControllerAdvice {
     @ExceptionHandler(value = JsonEOFException.class)
     public ResponseEntity<ApiResponse> JsonEOFException(JsonEOFException e){
         return ResponseEntity.status(400).body(new ApiResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(value = HttpClientErrorException.class)
+    public ResponseEntity<ApiResponse> HttpClientErrorException(HttpClientErrorException HttpClientErrorException){
+        return ResponseEntity.status(400).body(new ApiResponse(HttpClientErrorException.getMessage()));
+    }
+
+    @ExceptionHandler(value = IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse> IllegalArgumentException (IllegalArgumentException IllegalArgumentException){
+        return ResponseEntity.status(400).body(new ApiResponse(IllegalArgumentException.getMessage()));
+    }
+
+    @ExceptionHandler(value = NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse>NoResourceFoundException (NoResourceFoundException NoResourceFoundException){
+        return ResponseEntity.status(400).body(new ApiResponse(NoResourceFoundException.getMessage()));
+    }
+
+    @ExceptionHandler(value = TransactionSystemException.class)
+    public ResponseEntity<ApiResponse> TransactionSystemException (TransactionSystemException transactionSystemException){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(transactionSystemException.getMessage()));
+    }
+
+    @ExceptionHandler(value = UnexpectedTypeException.class)
+    public ResponseEntity<ApiResponse> UnexpectedTypeException (UnexpectedTypeException unexpectedTypeException){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(unexpectedTypeException.getMessage()));
+    }
+
+    @ExceptionHandler(value = JpaSystemException.class)
+    public ResponseEntity<ApiResponse> JpaSystemException(JpaSystemException jpaSystemException){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(jpaSystemException.getMessage()));
+    }
+
+    @ExceptionHandler(value = NullPointerException.class)
+    public ResponseEntity<ApiResponse> NullPointerException (NullPointerException nullPointerException){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(nullPointerException.getMessage()));
     }
 }
