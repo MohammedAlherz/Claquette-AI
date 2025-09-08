@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/subscription")
@@ -55,5 +56,9 @@ public class CompanySubscriptionController {
     public ResponseEntity<?> historySubscriptions(@PathVariable Integer userId){
         return ResponseEntity.ok(subscriptionService.historyOfSubscription(userId));
     }
-
+    @GetMapping("/manage-subscription/{userId}")
+    public ResponseEntity<?> getSubscriptionDashboard(@PathVariable Integer userId) {
+        Map<String, Object> dashboard = subscriptionService.getSubscriptionDashboard(userId);
+        return ResponseEntity.ok(dashboard);
+    }
 }

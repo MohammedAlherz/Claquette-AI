@@ -373,11 +373,6 @@ public class ProjectService {
                 .mapToInt(episode -> sceneRepository.findSceneByEpisode(episode).size())
                 .sum();
 
-        // Alternative: If you have scenes through Film entity
-        // Integer totalScenesFromFilms = projects.stream()
-        //         .filter(project -> project.getFilms() != null)
-        //         .mapToInt(project -> sceneRepository.findScenesByFilm(project.getFilms()).size())
-        //         .sum();
 
         Map<String, Object> contentStats = new HashMap<>();
 
@@ -425,4 +420,26 @@ public class ProjectService {
         return contentStats;
     }
 
+    public void updateProjectStatus(Integer userId, Integer projectId, String status) {
+        // Validate user exists
+        User user = userRepository.findUserById(userId);
+        if (user == null) {
+            throw new ApiException("User not found");
+        }
+
+        // Validate project exists
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) {
+            throw new ApiException("Project not found");
+        }
+
+        // Check authorization
+        if (!project.getCompany().getUser().equals(user)) {
+            throw new ApiException("Not authorized to update this project");
+        }
+
+        // Update project status
+        project.setStatus(status);
+        projectRepository.save(project);
+    }
 }
