@@ -3,7 +3,6 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.DTO.CompanyDTOOUT;
-import com.example.claquetteai.DTO.WatheqValidationResponse;
 import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
