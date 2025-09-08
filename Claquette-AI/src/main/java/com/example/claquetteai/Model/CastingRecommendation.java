@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -58,4 +60,7 @@ public class CastingRecommendation {
     @ManyToOne
     @JsonIgnore
     private Project project;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "castingRecommendation")
+    private Set<CastingInfo> castingInfo;
 }
