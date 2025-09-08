@@ -3,7 +3,6 @@ package com.example.claquetteai.Service;
 import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.DTO.CompanyDTOIN;
 import com.example.claquetteai.DTO.CompanyDTOOUT;
-import com.example.claquetteai.DTO.WatheqValidationResponse;
 import com.example.claquetteai.Model.Company;
 import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CompanyRepository;
@@ -33,7 +32,6 @@ public class CompanyService {
     private final  VerificationEmailService emailService;
     private final  PasswordResetService passwordResetService;
     private final JwtUtil  jwtUtil;
-    private final WatheqService watheqService;
 
 
 
@@ -87,11 +85,7 @@ public class CompanyService {
 
     @Transactional
     public void registerCompanyWithVerification(CompanyDTOIN dto) {
-        // ✅ Validate CR
-        WatheqValidationResponse watheqResponse = watheqService.validateCommercialRegNo(dto.getCommercialRegNo());
-        if (!watheqResponse.isValid() || !watheqResponse.isActive()) {
-            throw new ApiException("Invalid or inactive commercial registration");
-        }
+
 
         // ✅ Create User with hashed password
         User user = new User();
