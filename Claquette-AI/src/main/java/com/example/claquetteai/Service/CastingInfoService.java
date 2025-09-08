@@ -45,7 +45,7 @@ public class CastingInfoService {
         }
         List<String> work = new ArrayList<>();
         for (CastingInfo c : castingInfo){
-            work.add(c.getPreviousWork());
+//            work.add(c.getPreviousWork());
         }
         return new CastingInfoDTOOUT(castingRecommendation.getRecommendedActorName(), castingRecommendation.getProfile(), castingRecommendation.getAge(), work);
     }

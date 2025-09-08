@@ -4,10 +4,7 @@ import com.example.claquetteai.Model.Episode;
 import com.example.claquetteai.Service.EpisodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,5 +18,11 @@ public class EpisodeController {
     @GetMapping("/{userId}/project-episodes/{projectId}")
     public ResponseEntity<?> getProjectEpisodes(@PathVariable Integer userId,@PathVariable Integer projectId){
         return ResponseEntity.ok(episodeService.getMyEpisodes(userId,projectId));
+    }
+
+    @PostMapping("/{userId}/generate-episodes/{projectId}")
+    public ResponseEntity<?> generateEpisodesAI(@PathVariable Integer userId,@PathVariable Integer projectId) throws Exception {
+        episodeService.generateEpisodes(userId, projectId);
+        return ResponseEntity.ok("episode generated successfully");
     }
 }

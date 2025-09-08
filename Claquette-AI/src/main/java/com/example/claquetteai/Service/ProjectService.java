@@ -30,8 +30,8 @@ public class ProjectService {
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
     private final AiClientService aiClientService;
-    private final EpisodeRepository episodeRepository;
     private final SceneRepository sceneRepository;
+    private final AiInteractionService aiInteractionService;
 
     public List<ProjectDTOOUT> getAllProjects() {
         return projectRepository.findAll().stream()

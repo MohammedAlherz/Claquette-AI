@@ -1,7 +1,11 @@
 package com.example.claquetteai.Service;
+import com.example.claquetteai.Api.ApiException;
 import com.example.claquetteai.Model.FilmCharacters;
 import com.example.claquetteai.Model.Project;
+import com.example.claquetteai.Model.User;
 import com.example.claquetteai.Repository.CharacterRepository;
+import com.example.claquetteai.Repository.ProjectRepository;
+import com.example.claquetteai.Repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +22,8 @@ public class CharacterService {
     private final JsonExtractor jsonExtractor;
     private final PromptBuilderService promptBuilderService;
     private final AiClientService aiClientService;
+    private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
     // AI Generation method
     public Set<FilmCharacters> generateCharacters(Project project, String storyDescription) throws Exception {
@@ -35,6 +41,25 @@ public class CharacterService {
 
     public Integer charactersCount(Integer userId){
         return characterRepository.countFilmCharactersByProject_Company_User_Id(userId);
+    }
+
+
+    public void generateCharacterOnly(Integer userId, Integer projectId) throws Exception {
+        User user = userRepository.findUserById(userId);
+        if (user == null){
+            throw new ApiException("user not found");
+        }
+        if (!user.getCompany().getIsSubscribed()){
+            throw new ApiException("you must subscribe to generate one by one");
+        }
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null){
+            throw new ApiException("project not found");
+        }
+        if (!project.getCompany().getUser().equals(user)){
+            throw new ApiException("not authorized");
+        }
+        generateCharacters(project, project.getDescription());
     }
 
 }

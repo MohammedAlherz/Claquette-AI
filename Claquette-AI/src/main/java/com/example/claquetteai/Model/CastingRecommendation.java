@@ -61,6 +61,7 @@ public class CastingRecommendation {
     @JsonIgnore
     private Project project;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "castingRecommendation")
-    private Set<CastingInfo> castingInfo;
+    @OneToOne(cascade = CascadeType.ALL, mappedBy = "castingRecommendation")
+    @JoinColumn
+    private CastingInfo castingInfo;
 }

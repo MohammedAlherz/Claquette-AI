@@ -17,19 +17,19 @@ import java.util.List;
 public class CastingInfo {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     //ايميل التواصل
     private String email;
     //اسم العمل
-    private String previousWork;
+    private List<String> previousWork;
     //فلم او مسلسل
     private String typeOfWork;
     //البطل او شخصية مساندة
     private String role;
 
-    @ManyToOne
+    @OneToOne
+    @MapsId
     @JsonIgnore
     private CastingRecommendation castingRecommendation;
 }
