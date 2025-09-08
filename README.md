@@ -75,7 +75,7 @@ Claquette AI is a Spring Boot backend application for an AI-powered platform tha
 > ![Class Diagram](MohammedAlherz/Claquette-AI/Claquette-AI/src/main/resources/templates/Assets/class_diagram.png)
 
 ### 🔶 Use Case Diagram
-> ![Use Case Diagram](MohammedAlherz/Claquette-AI/Claquette-AI/src/main/resources/templates/Assets/diagram.png)
+> ![Use Case Diagram](MohammedAlherz/Claquette-AI/Claquette-AI/src/main/resources/templates/Assets/use_case.png)
 
 ---
 
