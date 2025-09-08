@@ -13,12 +13,13 @@ import org.springframework.web.bind.annotation.*;
 public class SceneController {
     private final SceneService sceneService;
 
+    // Hussam
     @GetMapping("/project/{projectId}")
     public ResponseEntity<?> scenes(@AuthenticationPrincipal User user,
                                     @PathVariable Integer projectId) {
         return ResponseEntity.ok(sceneService.getScenes(user.getId(), projectId));
     }
-
+    // Hussam
     @GetMapping("/project/{projectId}/characters-count")
     public ResponseEntity<?> charactersCount(@AuthenticationPrincipal User user,
                                              @PathVariable Integer projectId) {

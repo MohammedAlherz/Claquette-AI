@@ -22,12 +22,14 @@ public class EpisodeController {
     private final EpisodeService episodeService;
 
     // Generate episodes for a project
+    // Hussam
     @PostMapping("/generate-episodes/{projectId}")
     public ResponseEntity<?> generateEpisodes(@AuthenticationPrincipal User user,
                                               @PathVariable Integer projectId) throws Exception {
         episodeService.generateEpisodes(user.getId(), projectId);
         return ResponseEntity.ok(new ApiResponse("Episodes generated successfully"));
     }
+    // Hussam
     @GetMapping("/project/{projectId}")
     public ResponseEntity<?> getProjectEpisodes(@AuthenticationPrincipal User user,
                                                             @PathVariable Integer projectId) {
@@ -35,6 +37,7 @@ public class EpisodeController {
         return ResponseEntity.ok(episodes);
     }
     // Get specific episode for a project
+    // Mohammed Alherz
     @GetMapping("/project/{projectId}/episode/{episodeId}")
     public ResponseEntity<?> getProjectEpisodeDetail(@AuthenticationPrincipal User user, @PathVariable Integer projectId,
                                                            @PathVariable Integer episodeId) {
@@ -43,6 +46,7 @@ public class EpisodeController {
     }
 
     // Get scenes for a specific episode
+    // Mohammed Alherz
     @GetMapping("/project/{projectId}/episode/{episodeId}/scenes")
     public ResponseEntity<Set<SceneDTOOUT>> getEpisodeScenes(@AuthenticationPrincipal User user,
                                                              @PathVariable Integer projectId,

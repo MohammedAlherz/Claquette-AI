@@ -15,11 +15,13 @@ public class CharactersController {
 
     private final CharacterService characterService;
 
+    // Hussam
     @GetMapping("/character-count")
     public ResponseEntity<?> characterCount(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(characterService.charactersCount(user.getId()));
     }
 
+    // Hussam
     @PostMapping("/generate-characters/{projectId}")
     public ResponseEntity<?> generateCharacters(@AuthenticationPrincipal User user,
                                                 @PathVariable Integer projectId) throws Exception {
@@ -28,6 +30,7 @@ public class CharactersController {
     }
 
     // Get characters for a specific project (with authorization check)
+    // Mohammed Alherz
     @GetMapping("/project/{projectId}")
     public ResponseEntity<?> getProjectCharacters(@AuthenticationPrincipal User user,
                                                   @PathVariable Integer projectId) {

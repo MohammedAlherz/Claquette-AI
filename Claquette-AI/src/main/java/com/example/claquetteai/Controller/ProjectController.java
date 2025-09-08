@@ -27,6 +27,7 @@ public class ProjectController {
     }
 
     // COMPANY only - add project for authenticated company
+    // Mohammed Shamhani
     @PostMapping("/add")
     public ResponseEntity<?> addProject(@AuthenticationPrincipal User user,
                                         @RequestBody @Valid Project project) {
@@ -36,6 +37,7 @@ public class ProjectController {
     }
 
     // COMPANY only - update their own projects
+    //  Mohammed Shamhani
     @PutMapping("/update/{projectId}")
     public ResponseEntity<?> updateProject(@AuthenticationPrincipal User user,
                                            @PathVariable Integer projectId,
@@ -45,6 +47,7 @@ public class ProjectController {
     }
 
     // COMPANY only - delete their own projects
+    //  Mohammed Shamhani
     @DeleteMapping("/delete/{projectId}")
     public ResponseEntity<?> deleteProject(@AuthenticationPrincipal User user,
                                            @PathVariable Integer projectId) {
@@ -53,24 +56,28 @@ public class ProjectController {
     }
 
     // COMPANY only - get authenticated user's projects
+    // Mohammed Alherz
     @GetMapping("/my-projects")
     public ResponseEntity<?> myProjects(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(projectService.getProjectById(user.getId()));
     }
 
     // COMPANY only - get authenticated user's project count
+    // Hussam
     @GetMapping("/project-count")
     public ResponseEntity<?> projectsCount(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(projectService.projectsCount(user.getId()).toString());
     }
 
     // COMPANY only - get authenticated user's total budget
+    // Hussam
     @GetMapping("/total-budget")
     public ResponseEntity<?> totalBudget(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(projectService.getTotalBudget(user.getId()).toString());
     }
 
     // COMPANY only - get project characters (with authorization check)
+    // Hussam
     @GetMapping("/project/{projectId}/characters")
     public ResponseEntity<?> projectCharacters(@AuthenticationPrincipal User user,
                                                @PathVariable Integer projectId) {
@@ -78,6 +85,7 @@ public class ProjectController {
     }
 
     // COMPANY only - generate poster for their project
+    // Hussam
     @PostMapping("/generate-poster/{projectId}")
     public ResponseEntity<?> generateAIPoster(@AuthenticationPrincipal User user,
                                               @PathVariable Integer projectId) throws Exception {
@@ -86,6 +94,7 @@ public class ProjectController {
     }
 
     // COMPANY only - get poster for their project
+    // Hussam
     @GetMapping(value = "/{projectId}/poster.png", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<?> getPosterPng(@AuthenticationPrincipal User user,
                                           @PathVariable Integer projectId) {
@@ -93,6 +102,7 @@ public class ProjectController {
     }
 
     // COMPANY only - upload poster for their project
+    // Hussam
     @PutMapping("/{projectId}/poster")
     public ResponseEntity<?> uploadPoster(@AuthenticationPrincipal User user,
                                           @PathVariable Integer projectId,
@@ -102,6 +112,7 @@ public class ProjectController {
     }
 
     // COMPANY only - get dashboard for authenticated user
+    // Mohammed Alherz
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboardSummary(@AuthenticationPrincipal User user) {
         Map<String, Object> dashboardData = projectService.getDashboardSummary(user.getId());
@@ -109,6 +120,7 @@ public class ProjectController {
     }
 
     // COMPANY only - get content stats for authenticated user
+    // Mohammed Alherz
     @GetMapping("/content/statistics")
     public ResponseEntity<?> getContentStats(@AuthenticationPrincipal User user) {
         Map<String, Object> contentStats = projectService.getContentStats(user.getId());
@@ -116,6 +128,7 @@ public class ProjectController {
     }
 
     // COMPANY only - update status of their project
+    // Mohammed Alherz
     @PutMapping("/{projectId}/status/{status}")
     public ResponseEntity<ApiResponse> updateProjectStatus(@AuthenticationPrincipal User user,
                                                            @PathVariable Integer projectId,

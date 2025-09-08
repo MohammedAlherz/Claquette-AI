@@ -15,12 +15,14 @@ public class CastingInfoController {
 
     private final CastingInfoService castingInfoService;
 
+    // Hussam
     @GetMapping("/cast/{castingRecommendationId}")
     public ResponseEntity<?> infoCharacter(@AuthenticationPrincipal User user,
                                            @PathVariable Integer castingRecommendationId) {
         return ResponseEntity.ok(castingInfoService.showInfo(user.getId(), castingRecommendationId));
     }
 
+    // Hussam
     @PostMapping("/contact/{castingRecommendationId}")
     public ResponseEntity<?> contactCharacter(@AuthenticationPrincipal User user,
                                               @PathVariable Integer castingRecommendationId,

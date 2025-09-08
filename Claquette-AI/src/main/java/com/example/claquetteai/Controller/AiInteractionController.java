@@ -15,6 +15,7 @@ public class AiInteractionController {
 
     private final AiInteractionService aiInteractionService;
 
+    // Hussam
     @PostMapping("/project/{projectId}")
     public ResponseEntity<?> generateScreenplay(@AuthenticationPrincipal User user,
                                                 @PathVariable Integer projectId) throws Exception {

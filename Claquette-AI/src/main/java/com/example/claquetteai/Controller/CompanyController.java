@@ -21,6 +21,7 @@ public class CompanyController {
     private final CompanyService companyService;
 
     // PUBLIC - No authentication required
+    //  Mohammed Shamhani
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String token,
                                            @RequestParam String newPassword) {
@@ -29,6 +30,7 @@ public class CompanyController {
     }
 
     // PUBLIC - No authentication required
+    //  Mohammed Shamhani
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         companyService.forgotPassword(email);
@@ -36,17 +38,20 @@ public class CompanyController {
     }
 
     // ADMIN ONLY - Get all companies in system
+    //  Mohammed Shamhani
     @GetMapping("/companies")
     public ResponseEntity<?> getAllCompanies() {
         return ResponseEntity.ok().body(companyService.getAllCompanies());
     }
 
+    //  Mohammed Shamhani
     @GetMapping("/my-company")
     public ResponseEntity<?> getUserCompany(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok().body(companyService.getMyCompany(user.getId()));
     }
 
     // PUBLIC - No authentication required
+    //  Mohammed Shamhani
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody @Valid CompanyDTOIN dto) throws JsonProcessingException {
         companyService.registerCompanyWithVerification(dto);
@@ -56,6 +61,7 @@ public class CompanyController {
     }
 
     // PUBLIC - No authentication required
+    //  Mohammed Shamhani
     @PostMapping("/verify")
     public ResponseEntity<?> verify(@AuthenticationPrincipal User user, @RequestParam("code") String code) {
         companyService.verifyUserEmail(user.getId(), code);
@@ -63,6 +69,7 @@ public class CompanyController {
     }
 
     // COMPANY or ADMIN - resend verification
+    //  Mohammed Shamhani
     @PostMapping("/resend")
     public ResponseEntity<?> resend(@AuthenticationPrincipal User user) {
         companyService.resendVerificationCode(user.getId());
@@ -70,6 +77,7 @@ public class CompanyController {
     }
 
     // COMPANY - Update company (users can update their company)
+    //  Mohammed Shamhani
     @PutMapping("/update")
     public ResponseEntity<?> updateCompany(@AuthenticationPrincipal User user,
                                            @RequestBody @Valid CompanyDTOIN dto) {
@@ -79,6 +87,7 @@ public class CompanyController {
     }
 
     // ADMIN ONLY - Delete any company
+    //  Mohammed Shamhani
     @DeleteMapping("/delete/{companyId}")
     public ResponseEntity<?> deleteCompany(@AuthenticationPrincipal User user,@PathVariable Integer companyId) {
         companyService.deleteCompany(user.getId(),companyId);
@@ -86,6 +95,7 @@ public class CompanyController {
     }
 
     // COMPANY or ADMIN - Upload photo for authenticated user
+    // Hussam
     @PostMapping(value = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadUserPhoto(@AuthenticationPrincipal User user,
                                              @RequestParam("file") MultipartFile file) {
@@ -94,6 +104,7 @@ public class CompanyController {
     }
 
     // COMPANY - Get own profile info
+    // Hussam
     @GetMapping(value = "/profile-photo", produces = {
             MediaType.IMAGE_JPEG_VALUE,
             MediaType.IMAGE_PNG_VALUE,

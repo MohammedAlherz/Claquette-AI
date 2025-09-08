@@ -19,12 +19,14 @@ public class CompanySubscriptionController {
     private final CompanySubscriptionService subscriptionService;
 
     // ADMIN ONLY - Get all subscription plans
+    //  Mohammed Shamhani
     @GetMapping("/get")
     public ResponseEntity<?> getAllSubscriptions() {
         return ResponseEntity.ok(subscriptionService.getAllSubscriptions());
     }
 
     // COMPANY ONLY - Subscribe to a plan
+    //  Mohammed Shamhani
     @PostMapping("/add/plan-type/{planType}")
     public ResponseEntity<?> addSubscription(@AuthenticationPrincipal User user,
                                              @PathVariable String planType,
@@ -33,16 +35,9 @@ public class CompanySubscriptionController {
                 user.getCompany().getId(), planType, payment));
     }
 
-    // COMPANY ONLY - Update own subscription status
-    @PutMapping("/update-status/{subscriptionId}")
-    public ResponseEntity<?> updateSubscriptionStatus(@AuthenticationPrincipal User user,
-                                                      @PathVariable Integer subscriptionId,
-                                                      @RequestParam String status) {
-        subscriptionService.updateSubscriptionStatus(user.getId(), subscriptionId, status);
-        return ResponseEntity.ok(new ApiResponse("Subscription status has been updated successfully"));
-    }
 
     // COMPANY ONLY - Cancel own subscription
+    // Mohammed Alherz
     @PutMapping("/cancel-subscription/{subscriptionId}")
     public ResponseEntity<?> cancelSubscription(@AuthenticationPrincipal User user,
                                                 @PathVariable Integer subscriptionId) {
@@ -50,6 +45,7 @@ public class CompanySubscriptionController {
         return ResponseEntity.ok(new ApiResponse("Subscription has been cancelled successfully"));
     }
 
+    // Mohammed Alherz
     @PutMapping("/activate-subscription/{subscriptionId}")
     public ResponseEntity<?> activateSubscription(@AuthenticationPrincipal User user,
                                                   @PathVariable Integer subscriptionId) {
@@ -58,6 +54,7 @@ public class CompanySubscriptionController {
     }
 
     // COMPANY ONLY - Renew own subscription
+    // Mohammed Alherz
     @PutMapping("/renew")
     public ResponseEntity<?> renewSubscription(@AuthenticationPrincipal User user,
                                                @RequestBody Payment payment) {
@@ -66,12 +63,14 @@ public class CompanySubscriptionController {
     }
 
     // COMPANY ONLY - Get own payment history
+    // Hussam
     @GetMapping("/history-payment")
     public ResponseEntity<?> historySubscriptions(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(subscriptionService.historyOfSubscription(user.getId()));
     }
 
     // COMPANY ONLY - Get own subscription dashboard
+    // Mohammed Alherz
     @GetMapping("/manage-subscription")
     public ResponseEntity<?> getSubscriptionDashboard(@AuthenticationPrincipal User user) {
         Map<String, Object> dashboard = subscriptionService.getSubscriptionDashboard(user.getId());
