@@ -171,10 +171,3 @@ Claquette AI is a Spring Boot backend application for an AI-powered platform tha
 
 ---
 
-<h3 align="center">🔗 Connect with me</h3>
-
-<p align="center">
-  <a href="" target="_blank">
-    <img src="" alt="LinkedIn Badge"/>
-  </a>
-</p>
