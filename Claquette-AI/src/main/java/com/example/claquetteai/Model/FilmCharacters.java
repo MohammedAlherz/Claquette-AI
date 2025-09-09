@@ -57,10 +57,14 @@ public class FilmCharacters {
 
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Project project;
 
     // CORRECTED: One-to-Many relationship with CastingRecommendation
     @OneToMany(mappedBy = "character", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<CastingRecommendation> castingRecommendations;
 }

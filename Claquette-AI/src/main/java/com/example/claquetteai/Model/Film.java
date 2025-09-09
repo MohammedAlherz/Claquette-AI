@@ -50,5 +50,7 @@ public class Film {
 
     @OneToMany(mappedBy = "film", cascade = CascadeType.ALL)
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<Scene> scenes;
 }

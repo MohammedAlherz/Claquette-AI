@@ -59,9 +59,13 @@ public class CastingRecommendation {
 
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Project project;
 
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "castingRecommendation")
     @JoinColumn
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private CastingInfo castingInfo;
 }

@@ -43,6 +43,8 @@ public class Scene {
 
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Episode episode;
 
     // CRITICAL FIX: Add proper cascade and fetch configuration
@@ -53,9 +55,13 @@ public class Scene {
             inverseJoinColumns = @JoinColumn(name = "characters_id") // This should match your actual column name
     )
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<FilmCharacters> characters;
 
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Film film;
 }

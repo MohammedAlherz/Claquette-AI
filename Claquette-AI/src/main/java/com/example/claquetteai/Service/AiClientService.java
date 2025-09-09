@@ -30,7 +30,7 @@ public class AiClientService {
         // Build the request body
         String requestBody = """
         {
-          "model": "gpt-4.1-mini",
+          "model": "gpt-4o",
           "messages": [
             {"role": "system", "content": "You are a professional Saudi screenwriter. CRITICAL RULES: 1) Return ONLY valid JSON. 2) 'assumptions' must be an ARRAY of strings, not an object. 3) No explanations, no markdown, no code blocks. 4) Start with { and end with }. 5) No trailing commas."},
             {"role": "user", "content": %s}

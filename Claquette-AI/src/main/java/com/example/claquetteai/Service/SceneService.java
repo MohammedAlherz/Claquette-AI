@@ -7,6 +7,7 @@ import com.example.claquetteai.Model.*;
 import com.example.claquetteai.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class SceneService {
+
     private final SceneRepository sceneRepository;
     private final EpisodeRepository episodeRepository;
     private final ProjectRepository projectRepository;
@@ -21,94 +23,115 @@ public class SceneService {
     private final FilmRepository filmRepository;
     private final CharacterRepository characterRepository;
 
-    public List<SceneDTOOUT> getScenes(Integer userId, Integer projectId){
+    /** Read scenes for a project (film or series) as lightweight DTOs. */
+    @Transactional(readOnly = true)
+    public List<SceneDTOOUT> getScenes(Integer userId, Integer projectId) {
+        // AuthZ + ownership
         Project project = projectRepository.findProjectById(projectId);
-        List<Scene> scenes = new ArrayList<>();
-        if (project == null){
-            throw new ApiException("project not found");
-        }
+        if (project == null) throw new ApiException("project not found");
+
         User user = userRepository.findUserById(userId);
-        if (user == null){
-            throw new ApiException("user not found");
-        }
-        if (!project.getCompany().getUser().equals(user)){
+        if (user == null) throw new ApiException("user not found");
+
+        if (!project.getCompany().getUser().equals(user)) {
             throw new ApiException("not authorised");
         }
 
-        List<SceneDTOOUT> sceneDTOOUTS = new ArrayList<>();
+        List<SceneDTOOUT> sceneDTOs = new ArrayList<>();
 
-        if(project.getProjectType().equals("FILM")){
+        if ("FILM".equals(project.getProjectType())) {
             Film film = filmRepository.findFilmByProject(project);
-            if(film == null){
-                throw new ApiException("Film not found");
-            }
-            scenes = sceneRepository.findSceneByFilm_Project(project);
+            if (film == null) throw new ApiException("Film not found");
 
-            // For film projects, episode info will be null
-            for (Scene s : scenes){
-                SceneDTOOUT dto = new SceneDTOOUT(s.getDialogue(), null, null);
-                sceneDTOOUTS.add(dto);
+            // Fetch scenes by project (your existing repo call)
+            List<Scene> scenes = sceneRepository.findSceneByFilm_Project(project);
+            for (Scene s : scenes) {
+                // For films, episode info is null
+                sceneDTOs.add(new SceneDTOOUT(safe(s.getDialogue()), null, null));
             }
-        }else{
-            // Handle TV series with episodes
+        } else {
+            // SERIES: gather across episodes
             List<Episode> episodes = episodeRepository.findEpisodesByProject(project);
-            if (episodes.isEmpty()){
+            if (episodes == null || episodes.isEmpty()) {
                 throw new ApiException("episode not found");
             }
 
-            // Get scenes from all episodes with episode information
-            for(Episode episode : episodes) {
-                List<Scene> episodeScenes = sceneRepository.findScenesByEpisode(episode);
-                for (Scene s : episodeScenes){
-                    SceneDTOOUT dto = new SceneDTOOUT(
-                            s.getDialogue(),
-                            episode.getEpisodeNumber(),
-                            episode.getTitle()
-                    );
-                    sceneDTOOUTS.add(dto);
+            for (Episode ep : episodes) {
+                List<Scene> episodeScenes = sceneRepository.findScenesByEpisode(ep);
+                for (Scene s : episodeScenes) {
+                    sceneDTOs.add(new SceneDTOOUT(
+                            safe(s.getDialogue()),
+                            ep.getEpisodeNumber(),
+                            safe(ep.getTitle())
+                    ));
                 }
             }
         }
 
-        return sceneDTOOUTS;
+        return sceneDTOs;
     }
 
-    public Integer characterScene(Integer userId, Integer projectId){
+    /** Simple count of characters on a project (used by your dashboards). */
+    @Transactional(readOnly = true)
+    public Integer characterScene(Integer userId, Integer projectId) {
         Project project = projectRepository.findProjectById(projectId);
-        if (project == null){
-            throw new ApiException("project not found");
-        }
+        if (project == null) throw new ApiException("project not found");
+
         User user = userRepository.findUserById(userId);
-        if (user == null){
-            throw new ApiException("user not found");
-        }
-        if (!project.getCompany().getUser().equals(user)){
+        if (user == null) throw new ApiException("user not found");
+
+        if (!project.getCompany().getUser().equals(user)) {
             throw new ApiException("not authorised");
         }
+
         List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
-        return characters.size();
+        return characters == null ? 0 : characters.size();
     }
 
-    public void updateScene(Integer userId, Integer projectId, Integer sceneId, SceneDTOIN sceneDTOIN){
+    /** Update a single scene (currently only dialogue in your DTO). */
+    @Transactional
+    public void updateScene(Integer userId, Integer projectId, Integer sceneId, SceneDTOIN sceneDTOIN) {
+        // Validate inputs
+        if (sceneDTOIN == null) throw new ApiException("invalid request");
         Project project = projectRepository.findProjectById(projectId);
-        if (project == null){
-            throw new ApiException("project not found");
-        }
+        if (project == null) throw new ApiException("project not found");
+
         User user = userRepository.findUserById(userId);
-        if (user == null){
-            throw new ApiException("user not found");
-        }
-        if (!project.getCompany().getUser().equals(user)){
+        if (user == null) throw new ApiException("user not found");
+
+        if (!project.getCompany().getUser().equals(user)) {
             throw new ApiException("not authorised");
         }
+
         Scene oldScene = sceneRepository.findSceneById(sceneId);
-        if (oldScene == null){
-            throw new ApiException("scene not found");
+        if (oldScene == null) throw new ApiException("scene not found");
+
+        // Extra safety: ensure scene belongs to the same project
+        if (!belongsToProject(oldScene, project)) {
+            throw new ApiException("scene does not belong to this project");
         }
 
+        // Apply updates (keep the scope to what your DTO currently carries)
         oldScene.setDialogue(sceneDTOIN.getDialogue());
         sceneRepository.save(oldScene);
     }
 
+    // ====================== Helpers ======================
 
+    private boolean belongsToProject(Scene s, Project p) {
+        // Film scene
+        if (s.getFilm() != null && s.getFilm().getProject() != null) {
+            return p.equals(s.getFilm().getProject());
+        }
+        // Episode scene
+        if (s.getEpisode() != null && s.getEpisode().getProject() != null) {
+            return p.equals(s.getEpisode().getProject());
+        }
+        // If neither is set, it’s an inconsistent scene
+        return false;
+    }
+
+    private static String safe(String s) {
+        return s == null ? "" : s;
+    }
 }

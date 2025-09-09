@@ -104,13 +104,19 @@ public class Project {
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<Episode> episodes;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<FilmCharacters> characters;
 
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<CastingRecommendation> castingRecommendations;
 }

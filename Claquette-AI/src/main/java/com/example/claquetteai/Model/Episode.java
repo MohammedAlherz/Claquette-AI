@@ -50,9 +50,13 @@ public class Episode {
 
     @ManyToOne
     @JsonIgnore
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Project project;
 
     // 🟢 Add OneToMany link with Scene
     @OneToMany(mappedBy = "episode", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude                              // avoid toString() triggering load
+    @EqualsAndHashCode.Exclude
     private Set<Scene> scenes;
 }

@@ -11,13 +11,13 @@ import com.example.claquetteai.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class EpisodeService {
+
     private final EpisodeRepository episodeRepository;
     private final JsonExtractor jsonExtractor;
     private final PromptBuilderService promptBuilderService;
@@ -26,144 +26,107 @@ public class EpisodeService {
     private final ProjectRepository projectRepository;
     private final CharacterRepository characterRepository;
 
-    // UPDATED METHOD: AI Generation method with character consistency
+    /** Generate a single episode (with robust JSON handling + graph normalization). */
     public Episode generateEpisodeWithScenes(Project project, int episodeNumber, String characterNames) throws Exception {
         System.out.println("=== GENERATING EPISODE " + episodeNumber + " ===");
         System.out.println("Project: " + project.getTitle());
         System.out.println("Available Characters: " + characterNames);
 
-        // Build prompt for specific episode with scenes using consistent character names
-        String prompt = promptBuilderService.episodePrompt(project.getDescription(), episodeNumber, characterNames);
+        // 1) Build strict JSON prompt around your base episode prompt
+        String basePrompt = promptBuilderService.episodePrompt(project.getDescription(), episodeNumber, characterNames);
+        String strictPrompt = addStrictJsonRules(basePrompt, episodeNumber);
 
         System.out.println("=== EPISODE PROMPT PREVIEW ===");
         System.out.println("Character Names Injected: " + characterNames);
-        System.out.println("Prompt Length: " + prompt.length() + " characters");
+        System.out.println("Prompt Length: " + strictPrompt.length() + " characters");
 
-        // Get AI response and extract episode with scenes
+        // 2) Call model (attempt #1)
         System.out.println("Calling AI service for episode generation...");
-        String json = aiClientService.askModel(prompt);
+        String aiText = aiClientService.askModel(strictPrompt);
 
         System.out.println("=== AI RESPONSE RECEIVED ===");
-        System.out.println("Response Length: " + json.length() + " characters");
-        System.out.println("Response Preview: " + json.substring(0, Math.min(200, json.length())) + "...");
+        System.out.println("Response Length: " + aiText.length() + " characters");
+        System.out.println("Response Preview: " + aiText.substring(0, Math.min(200, aiText.length())) + "...");
 
-        // Extract episode with scenes using the updated JSON extractor
-        Episode episode = jsonExtractor.extractEpisodeWithScenes(json, project, episodeNumber);
+        Episode episode;
+        try {
+            episode = jsonExtractor.extractEpisodeWithScenes(aiText, project, episodeNumber);
+        } catch (Exception first) {
+            // 3) Corrective retry: ask model to convert its own output into strict JSON
+            String corrective = buildCorrectiveJsonPrompt(aiText, episodeNumber);
+            String retryText = aiClientService.askModel(corrective);
 
+            System.out.println("=== AI CORRECTIVE RETRY ===");
+            System.out.println("Retry Response Preview: " + retryText.substring(0, Math.min(200, retryText.length())) + "...");
+
+            try {
+                episode = jsonExtractor.extractEpisodeWithScenes(retryText, project, episodeNumber);
+            } catch (Exception second) {
+                String head = aiText.substring(0, Math.min(aiText.length(), 500));
+                throw new ApiException("AI JSON parse error for episode " + episodeNumber + " after retry. First 500 chars of initial response:\n" + head);
+            }
+        }
+
+        // 4) Normalize graph: back-refs + attach scene characters to existing project chars by exact name
+        normalizeEpisodeGraph(episode, project);
+
+        // 5) Logging + light stats
         System.out.println("=== EPISODE EXTRACTION COMPLETE ===");
         System.out.println("Episode Title: " + episode.getTitle());
         System.out.println("Scene Count: " + (episode.getScenes() != null ? episode.getScenes().size() : 0));
-
-        // Validate scene-character consistency
         if (episode.getScenes() != null) {
-            int totalCharacterAssociations = 0;
-            for (var scene : episode.getScenes()) {
-                if (scene.getCharacters() != null) {
-                    totalCharacterAssociations += scene.getCharacters().size();
-                    System.out.println("Scene " + scene.getSceneNumber() + " has " +
-                            scene.getCharacters().size() + " character associations");
-                }
-            }
-            System.out.println("Total character-scene associations: " + totalCharacterAssociations);
+            int associations = episode.getScenes().stream()
+                    .mapToInt(s -> s.getCharacters() == null ? 0 : s.getCharacters().size()).sum();
+            System.out.println("Total character-scene associations: " + associations);
         }
 
-        // Save and return the episode
-        Episode savedEpisode = episodeRepository.save(episode);
-        System.out.println("Episode saved with ID: " + savedEpisode.getId());
+        // 6) Persist
+        Episode saved = episodeRepository.save(episode);
+        System.out.println("Episode saved with ID: " + saved.getId());
         System.out.println("=== EPISODE GENERATION COMPLETE ===");
-
-        return savedEpisode;
+        return saved;
     }
 
-    // UTILITY METHOD: Validate episode character consistency
-    public void validateEpisodeCharacterConsistency(Episode episode, String expectedCharacterNames) {
-        if (episode.getScenes() == null || expectedCharacterNames == null) {
-            return;
+    /** Generate all episodes sequentially using the same character list. */
+    public void generateEpisodes(Integer userId, Integer projectId) throws Exception {
+        User user = userRepository.findUserById(userId);
+        if (user == null) throw new ApiException("user not found");
+        if (!user.getCompany().getIsSubscribed()) throw new ApiException("you must subscribe to generate one by one");
+
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) throw new ApiException("project not found");
+        if (!project.getCompany().getUser().equals(user)) throw new ApiException("not authorized");
+
+        if ("FILM".equals(project.getProjectType())) {
+            project.setEpisodeCount(1);
         }
 
-        String[] expectedNames = expectedCharacterNames.split(",");
-        for (int i = 0; i < expectedNames.length; i++) {
-            expectedNames[i] = expectedNames[i].trim();
-        }
+        List<FilmCharacters> chars = characterRepository.findFilmCharactersByProject(project);
+        if (chars.isEmpty()) throw new ApiException("No characters found for this project. Please generate characters first.");
 
-        System.out.println("=== VALIDATING CHARACTER CONSISTENCY ===");
-        System.out.println("Expected Characters: " + String.join(", ", expectedNames));
+        String characterNames = chars.stream()
+                .map(FilmCharacters::getName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
 
-        for (var scene : episode.getScenes()) {
-            if (scene.getCharacters() != null) {
-                for (var character : scene.getCharacters()) {
-                    boolean found = false;
-                    for (String expectedName : expectedNames) {
-                        if (expectedName.equals(character.getName())) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        System.out.println("WARNING: Scene " + scene.getSceneNumber() +
-                                " contains unexpected character: " + character.getName());
-                    }
-                }
-            }
+        for (int ep = 1; ep <= project.getEpisodeCount(); ep++) {
+            generateEpisodeWithScenes(project, ep, characterNames);
         }
-        System.out.println("=== VALIDATION COMPLETE ===");
     }
+
+    // ===================== Reads / DTOs (unchanged structure) =====================
 
     public List<Episode> getMyEpisodes(Integer userId, Integer projectId) {
-        // You can add user validation here if needed
         return episodeRepository.findByProjectId(projectId);
     }
 
-
-    public void generateEpisodes(Integer userId, Integer projectId) throws Exception {
-        User user = userRepository.findUserById(userId);
-        if (user == null){
-            throw new ApiException("user not found");
-        }
-        if (!user.getCompany().getIsSubscribed()){
-            throw new ApiException("you must subscribe to generate one by one");
-        }
-        Project project = projectRepository.findProjectById(projectId);
-        if (project == null){
-            throw new ApiException("project not found");
-        }
-        if (!project.getCompany().getUser().equals(user)){
-            throw new ApiException("not authorized");
-        }
-        if(project.getProjectType().equals("FILM")){
-            throw new ApiException("Project is not Series");
-        }
-
-        List<FilmCharacters> characters = characterRepository.findFilmCharactersByProject(project);
-        if (characters.isEmpty()) {
-            throw new ApiException("No characters found for this project. Please generate characters first.");
-        }
-
-        // FIXED: Get all character names together and generate episodes sequentially
-        String characterNames = characters.stream()
-                .map(FilmCharacters::getName)
-                .collect(Collectors.joining(", "));
-
-        // Generate episodes 1, 2, 3... up to the project's episode count
-        for (int episodeNumber = 1; episodeNumber <= project.getEpisodeCount(); episodeNumber++) {
-            generateEpisodeWithScenes(project, episodeNumber, characterNames);
-        }
-    }
-
-    // Get project episode with authorization
     public EpisodeDTOOUT getProjectEpisode(Integer userId, Integer projectId, Integer episodeId) {
         User user = userRepository.findUserById(userId);
-        if (user == null) {
-            throw new ApiException("User not found");
-        }
+        if (user == null) throw new ApiException("User not found");
 
         Project project = projectRepository.findProjectById(projectId);
-        if (project == null) {
-            throw new ApiException("Project not found");
-        }
-        if (!project.getCompany().getUser().equals(user)) {
-            throw new ApiException("Not authorized");
-        }
+        if (project == null) throw new ApiException("Project not found");
+        if (!project.getCompany().getUser().equals(user)) throw new ApiException("Not authorized");
 
         Episode episode = episodeRepository.findById(episodeId)
                 .orElseThrow(() -> new ApiException("Episode not found"));
@@ -171,24 +134,16 @@ public class EpisodeService {
         if (!episode.getProject().equals(project)) {
             throw new ApiException("Episode does not belong to this project");
         }
-
         return convertToEpisodeDTO(episode);
     }
 
-    // Get episode scenes with authorization
     public Set<SceneDTOOUT> getEpisodeScenes(Integer userId, Integer projectId, Integer episodeId) {
         User user = userRepository.findUserById(userId);
-        if (user == null) {
-            throw new ApiException("User not found");
-        }
+        if (user == null) throw new ApiException("User not found");
 
         Project project = projectRepository.findProjectById(projectId);
-        if (project == null) {
-            throw new ApiException("Project not found");
-        }
-        if (!project.getCompany().getUser().equals(user)) {
-            throw new ApiException("Not authorized");
-        }
+        if (project == null) throw new ApiException("Project not found");
+        if (!project.getCompany().getUser().equals(user)) throw new ApiException("Not authorized");
 
         Episode episode = episodeRepository.findById(episodeId)
                 .orElseThrow(() -> new ApiException("Episode not found"));
@@ -196,12 +151,23 @@ public class EpisodeService {
         if (!episode.getProject().equals(project)) {
             throw new ApiException("Episode does not belong to this project");
         }
-
         return convertToSceneDTOs(episode.getScenes());
     }
 
+    public List<EpisodeDTOOUT> getProjectEpisodes(Integer userId, Integer projectId) {
+        User user = userRepository.findUserById(userId);
+        if (user == null) throw new ApiException("User not found");
 
-    // Converter methods
+        Project project = projectRepository.findProjectById(projectId);
+        if (project == null) throw new ApiException("Project not found");
+        if (!project.getCompany().getUser().equals(user)) throw new ApiException("Not authorized");
+
+        List<Episode> episodes = episodeRepository.findByProjectId(projectId);
+        return episodes.stream().map(this::convertToEpisodeDTO).collect(Collectors.toList());
+    }
+
+    // ===================== Converters (unchanged) =====================
+
     private EpisodeDTOOUT convertToEpisodeDTO(Episode episode) {
         EpisodeDTOOUT dto = new EpisodeDTOOUT();
         dto.setEpisodeNumber(episode.getEpisodeNumber());
@@ -211,9 +177,7 @@ public class EpisodeService {
     }
 
     private Set<SceneDTOOUT> convertToSceneDTOs(Set<Scene> scenes) {
-        return scenes.stream()
-                .map(this::convertToSceneDTO)
-                .collect(Collectors.toSet());
+        return scenes.stream().map(this::convertToSceneDTO).collect(Collectors.toSet());
     }
 
     private SceneDTOOUT convertToSceneDTO(Scene scene) {
@@ -225,28 +189,120 @@ public class EpisodeService {
             episodeNumber = scene.getEpisode().getEpisodeNumber();
             episodeTitle = scene.getEpisode().getTitle();
         }
-
         return new SceneDTOOUT(dialogue, episodeNumber, episodeTitle);
     }
-    // Get episodes for a specific project with authorization
-    public List<EpisodeDTOOUT> getProjectEpisodes(Integer userId, Integer projectId) {
-        User user = userRepository.findUserById(userId);
-        if (user == null) {
-            throw new ApiException("User not found");
+
+    // ===================== JSON Prompting & Normalization =====================
+
+    /** Hard “strict JSON” rules layered on top of your base episode prompt. */
+    private String addStrictJsonRules(String basePrompt, int episodeNumber) {
+        return """
+               Return ONLY STRICT MINIFIED JSON that matches:
+               {
+                 "episodeNumber": %d,
+                 "title": "string",
+                 "summary": "string",
+                 "scenes": [
+                   {
+                     "sceneNumber": 1,
+                     "setting": "string",
+                     "description": "string",
+                     "actions": "string",
+                     "dialogue": "string",
+                     "departmentNotes": "string",
+                     "characters": ["Name1","Name2"]
+                   }
+                 ]
+               }
+               Rules:
+               - No prose, no markdown, no code fences.
+               - Double quotes for all keys/strings; no trailing commas.
+               - episodeNumber = %d exactly.
+               - sceneNumber starts at 1 and increments by 1.
+               - characters[] must use ONLY names from the provided list exactly.
+               
+               Content to base on:
+               """.formatted(episodeNumber, episodeNumber) + basePrompt;
+    }
+
+    /** If the first parse fails, ask the model to convert its own output to strict JSON. */
+    private String buildCorrectiveJsonPrompt(String aiText, int episodeNumber) {
+        return """
+               Convert the following content to STRICT MINIFIED JSON with keys:
+               episodeNumber (=%d), title, summary, scenes[].sceneNumber, scenes[].setting, scenes[].description, scenes[].actions, scenes[].dialogue, scenes[].departmentNotes, scenes[].characters (array of strings).
+               
+               Output ONLY JSON (no prose, no markdown, no comments).
+               Use double quotes for keys/strings. No trailing commas.
+               
+               Content:
+               """.formatted(episodeNumber) + aiText;
+    }
+
+    /**
+     * Normalize object graph before saving:
+     * - set episode.project
+     * - set scene.episode (ensure sceneNumber positive)
+     * - attach scene.characters to EXISTING FilmCharacters of this project by exact name
+     */
+    private void normalizeEpisodeGraph(Episode episode, Project project) {
+        if (episode == null) throw new ApiException("Episode is null after extraction");
+
+        episode.setProject(project);
+        if (episode.getEpisodeNumber() == null || episode.getEpisodeNumber() <= 0) {
+            episode.setEpisodeNumber(1);
         }
 
-        Project project = projectRepository.findProjectById(projectId);
-        if (project == null) {
-            throw new ApiException("Project not found");
-        }
-        if (!project.getCompany().getUser().equals(user)) {
-            throw new ApiException("Not authorized");
+        // Build lookup: name -> FilmCharacters (managed for this project)
+        List<FilmCharacters> projectChars = characterRepository.findFilmCharactersByProject(project);
+        Map<String, FilmCharacters> byName = new HashMap<>();
+        for (FilmCharacters fc : projectChars) {
+            if (fc.getName() != null) byName.put(fc.getName(), fc);
         }
 
-        List<Episode> episodes = episodeRepository.findByProjectId(projectId);
+        if (episode.getScenes() != null) {
+            for (Scene s : episode.getScenes()) {
+                s.setEpisode(episode);
+                if (s.getSceneNumber() == null || s.getSceneNumber() <= 0) {
+                    s.setSceneNumber(1);
+                }
 
-        return episodes.stream()
-                .map(this::convertToEpisodeDTO)
-                .collect(Collectors.toList());
+                if (s.getCharacters() != null && !s.getCharacters().isEmpty()) {
+                    Set<FilmCharacters> remapped = new HashSet<>();
+                    for (FilmCharacters c : s.getCharacters()) {
+                        FilmCharacters attached = (c != null && c.getName() != null) ? byName.get(c.getName()) : null;
+                        if (attached != null) remapped.add(attached);
+                    }
+                    s.setCharacters(remapped);
+                }
+            }
+        }
+    }
+
+    // ===================== Consistency checker (unchanged behavior) =====================
+
+    public void validateEpisodeCharacterConsistency(Episode episode, String expectedCharacterNames) {
+        if (episode.getScenes() == null || expectedCharacterNames == null) return;
+
+        String[] expectedNames = Arrays.stream(expectedCharacterNames.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).toArray(String[]::new);
+
+        System.out.println("=== VALIDATING CHARACTER CONSISTENCY ===");
+        System.out.println("Expected Characters: " + String.join(", ", expectedNames));
+
+        for (var scene : episode.getScenes()) {
+            if (scene.getCharacters() != null) {
+                for (var character : scene.getCharacters()) {
+                    boolean found = false;
+                    for (String expectedName : expectedNames) {
+                        if (expectedName.equals(character.getName())) { found = true; break; }
+                    }
+                    if (!found) {
+                        System.out.println("WARNING: Scene " + scene.getSceneNumber() +
+                                " contains unexpected character: " + character.getName());
+                    }
+                }
+            }
+        }
+        System.out.println("=== VALIDATION COMPLETE ===");
     }
 }
