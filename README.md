@@ -1,7 +1,6 @@
 <div align="center">
   <img src="Claquette-AI/src/main/resources/templates/Assets/logo.png" alt="Claquette AI" width="500"/>
 </div>
-# Claquette AI
 
 ### Claquette AI 🎬
 
