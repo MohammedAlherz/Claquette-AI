@@ -79,8 +79,7 @@ Claquette AI is a Spring Boot backend application for an AI-powered platform tha
 
 ## 📬 API Documentation
 
-- 🔗 [Postman Documentation]()
-- Base URL: ``
+- 🔗 [Postman Documentation](https://documenter.getpostman.com/view/27400894/2sB3HnJezb)
 
 ---
 
@@ -170,4 +169,5 @@ Claquette AI is a Spring Boot backend application for an AI-powered platform tha
 | **Hussam** | AI Specialist & Analytics Developer | 20 | AI Content Generation, Analytics, Scene Management |
 
 ---
-
+### Postman Demo 
+🔗 [Postman Demo](https://drive.google.com/file/d/15PzVs43NbvqNMWRE2pBEoknpL4qmxpOa/view?usp=drive_link)
