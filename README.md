@@ -80,13 +80,15 @@ Claquette AI is a Spring Boot backend application for an AI-powered platform tha
 ## 📬 API Documentation
 
 - 🔗 [Postman Documentation](https://documenter.getpostman.com/view/27400894/2sB3HnJezb)
+- ## Postman Demo 
+🔗 [Postman Demo](https://drive.google.com/file/d/15PzVs43NbvqNMWRE2pBEoknpL4qmxpOa/view?usp=drive_link)
 
 ---
 
 ## 🎨 Figma Design
-
 - 🔗 [View UI on Figma](https://www.figma.com/proto/912y3Gcb7NKBjKPoYWbb5i/Mflm?node-id=2-2&t=LsRQrFVJE3Ij13X5-0&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1)
-
+- ## Figma Demo 
+🔗 [Figma Demo](https://drive.google.com/file/d/1AsDdt8sZPsKgB9dLPmI7Ct2rX41ou8Xv/view?usp=sharing)
 ---
 
 ## 🧰 API Endpoints - Team Contributions
@@ -169,5 +171,3 @@ Claquette AI is a Spring Boot backend application for an AI-powered platform tha
 | **Hussam** | AI Specialist & Analytics Developer | 20 | AI Content Generation, Analytics, Scene Management |
 
 ---
-### Postman Demo 
-🔗 [Postman Demo](https://drive.google.com/file/d/15PzVs43NbvqNMWRE2pBEoknpL4qmxpOa/view?usp=drive_link)
